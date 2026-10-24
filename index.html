@@ -1754,7 +1754,7 @@ const VERBS = [
   { kanji: "話す", hira: "はなす", romaji: "hanasu", meaning: "to speak / talk", group: "u" },
   { kanji: "聞く", hira: "きく", romaji: "kiku", meaning: "to listen / ask", group: "u" },
   { kanji: "教える", hira: "おしえる", romaji: "oshieru", meaning: "to teach / tell", group: "ru" },
-  { kanji: "わかる", hira: "わかる", romaji: "wakaru", meaning: "to understand", group: "u" },
+  { kanji: "わかる", hira: "わかる", romaji: "wakaru", meaning: "to understand", group: "u", skip: ["potential", "passive"] },
   { kanji: "会う", hira: "あう", romaji: "au", meaning: "to meet", group: "u" },
   { kanji: "呼ぶ", hira: "よぶ", romaji: "yobu", meaning: "to call", group: "u" },
 
@@ -1764,7 +1764,7 @@ const VERBS = [
   { kanji: "書く", hira: "かく", romaji: "kaku", meaning: "to write", group: "u" },
   { kanji: "撮る", hira: "とる", romaji: "toru", meaning: "to take (a photo)", group: "u", note: "irufu" },
   { kanji: "忘れる", hira: "わすれる", romaji: "wasureru", meaning: "to forget", group: "ru" },
-  { kanji: "知る", hira: "しる", romaji: "shiru", meaning: "to know", group: "u", note: "irufu" },
+  { kanji: "知る", hira: "しる", romaji: "shiru", meaning: "to know", group: "u", note: "irufu", skip: ["potential"] },
 
   // --- Around the house ---
   { kanji: "開ける", hira: "あける", romaji: "akeru", meaning: "to open", group: "ru" },
@@ -1776,7 +1776,7 @@ const VERBS = [
   { kanji: "待つ", hira: "まつ", romaji: "matsu", meaning: "to wait", group: "u" },
   { kanji: "遊ぶ", hira: "あそぶ", romaji: "asobu", meaning: "to play", group: "u" },
   { kanji: "泳ぐ", hira: "およぐ", romaji: "oyogu", meaning: "to swim", group: "u" },
-  { kanji: "死ぬ", hira: "しぬ", romaji: "shinu", meaning: "to die", group: "u" },
+  { kanji: "死ぬ", hira: "しぬ", romaji: "shinu", meaning: "to die", group: "u", skip: ["potential"] },
   { kanji: "ある", hira: "ある", romaji: "aru", meaning: "to exist / to be", group: "u", note: "aru_exception" },
 
   // --- Irregular ---
@@ -1978,7 +1978,7 @@ function conjugate(verb) {
     result.masuPastNegative = stem + "ませんでした";
     result.command = stem + "ろ";
     result.conditional = stem + "れば";
-    result.potential = stem + "れる";
+    result.potential = stem + "られる";
     result.volitional = stem + "よう";
     result.te = stem + "て";
     result.teiru = stem + "ている";
@@ -2005,10 +2005,10 @@ function conjugate(verb) {
       result.potential = "—";
       result.volitional = "あろう";
       result.te = "あって";
-      result.teiru = "あっている";
-      result.teiru_past = "あっていた";
-      result.teiru_negative = "あっていない";
-      result.teiru_pastNegative = "あっていなかった";
+      result.teiru = "—";
+      result.teiru_past = "—";
+      result.teiru_negative = "—";
+      result.teiru_pastNegative = "—";
       result.ta = "あった";
       result.passive = "—";
       result.causative = "—";
@@ -2080,7 +2080,7 @@ function conjugate(verb) {
       result.masuPastNegative = "きませんでした";
       result.command = "こい";
       result.conditional = "くれば";
-      result.potential = "これる";
+      result.potential = "こられる";
       result.volitional = "こよう";
       result.te = "きて";
       result.teiru = "きている";
@@ -2095,6 +2095,10 @@ function conjugate(verb) {
       result.prohibitive = "くるな";
     }
   }
+
+  // Forms that don't occur naturally for a given verb (e.g. わかる already
+  // contains the idea of "can", so it has no potential). Show "—" instead.
+  (verb.skip || []).forEach(key => { result[key] = "—"; });
 
   // Conditional forms beyond the plain ば: the ば-negative (〜なければ),
   // the たら-form (〜たら), and the たら-negative (〜なかったら).
@@ -2281,7 +2285,7 @@ function renderRulesPage() {
         <tr><td>ぐ</td><td>いで</td><td>いだ</td><td>${rubyMarkup('急ぐ','いそぐ')}→${rubyMarkup('急いで','いそいで')}</td></tr>
         <tr><td>す</td><td>して</td><td>した</td><td>${rubyMarkup('消す','けす')}→${rubyMarkup('消して','けして')}</td></tr>
       </table>
-      <p style="color:var(--ink-soft);font-size:13.5px;margin-top:14px;">⚠ A handful of verbs look like Ru-Verbs but actually belong here — ${rubyMarkup('帰る','かえる')} and ${rubyMarkup('入る','はいる')} are the classic examples. Check the Ru-Verb tab for more on that mix-up.</p>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin-top:14px;">⚠ A handful of verbs look like Ru-Verbs but actually belong here — ${rubyMarkup('帰る','かえる')} and ${rubyMarkup('入る','はいる')} are the classic examples. The lookalikes in this app are ${rubyMarkup('帰る','かえる')}, ${rubyMarkup('入る','はいる')} and ${rubyMarkup('知る','しる')} — they end in an え- or い-sound before る, but conjugate as U-Verbs (${rubyMarkup('帰る','かえる')} → ${rubyMarkup('帰らない','かえらない')}, not <s>かえない</s>).</p>
     </div>
     <div class="rule-card">
       <h3><span class="rule-tag tag-ru">Ru-Verb</span>Ru-Verb<span class="term-sub">（Group 2 / Ichidan）</span></h3>
@@ -2300,7 +2304,7 @@ function renderRulesPage() {
         { type:'plus' },
         { type:'end', text:'ない ／ ます ／ て ／ た', cap:'any ending' },
       ])}
-      <p style="color:var(--ink-soft);font-size:13.5px;">⚠ Watch out for the lookalikes mentioned on the U-Verb tab — they have the same shape as a Ru-Verb but conjugate as <b style="color:var(--u)">U-Verbs</b> instead.</p>
+      <p style="color:var(--ink-soft);font-size:13.5px;">⚠ Watch out for the lookalikes listed in the U-Verb card above (${rubyMarkup('帰る','かえる')}, ${rubyMarkup('入る','はいる')}, ${rubyMarkup('知る','しる')}) — they have the same shape as a Ru-Verb but conjugate as <b style="color:var(--u)">U-Verbs</b> instead.</p>
     </div>
     <div class="rule-card">
       <h3><span class="rule-tag tag-irr">Irr-Verb</span>Irr-Verb<span class="term-sub">（Group 3 / Irregular）</span></h3>
