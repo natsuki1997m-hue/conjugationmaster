@@ -2633,6 +2633,22 @@ function categoryFlowsHtml(category) {
     <div class="cf-unit"><div class="cf-block cf-change">する → ${suru}</div></div>
     <div class="cf-unit"><div class="cf-block cf-change">${rubyMarkup('来る','くる')} → ${kuru}</div></div>
   </div>`;
+  // U-verbs whose dictionary form ends in a vowel (う): the a-row of う is わ, not あ.
+  const uVowelFlow = () => conjFlow('U-Verb ending in う（vowel）— う → わ ＋ ない', [
+    { type:'plain', text: rubyMarkup('洗う','あらう'), cap:'dictionary form' },
+    arrow,
+    { type:'keep', text: rubyMarkup('洗','あら'), cap:'keep' },
+    plus,
+    { type:'change', text:'わ', cap:'う → わ<br>(not あ)' },
+    plus,
+    { type:'end', text:'ない', cap:'ending' },
+    arrow,
+    { type:'plain', text: rubyMarkup('洗わない','あらわない'), cap:'negative' },
+  ]) + `<p style="color:var(--ink-soft);font-size:13px;margin:4px 0 10px;">⚠ When a u-verb ends in a vowel <b>う</b>, change it to <b>わ</b> before ない — not あ.
+    ${rubyMarkup('洗う','あらう')} → ${rubyMarkup('洗わない','あらわない')} (<s>あらあない</s>) ／
+    ${rubyMarkup('買う','かう')} → ${rubyMarkup('買わない','かわない')} ／
+    ${rubyMarkup('言う','いう')} → ${rubyMarkup('言わない','いわない')} ／
+    ${rubyMarkup('会う','あう')} → ${rubyMarkup('会わない','あわない')}</p>`;
   const politeFlow = (base, baseHira, stem, stemHira) => conjFlow('Built like a Ru-Verb: drop る, add ます', [
     { type:'plain', text: rubyMarkup(base, baseHira), cap:'plain form' },
     arrow,
@@ -2645,7 +2661,7 @@ function categoryFlowsHtml(category) {
     case 'masu':
       return uShift('み', 'u-row → i-row', 'ます') + ruFlow('ます') + irrNote('します', 'きます');
     case 'nai':
-      return uShift('ま', 'u-row → a-row', 'ない') + ruFlow('ない') + irrNote('しない', 'こない');
+      return uShift('ま', 'u-row → a-row', 'ない') + uVowelFlow() + ruFlow('ない') + irrNote('しない', 'こない');
     case 'ta':
       return conjFlow('U-Verb ① う・つ・る → った', [
         { type:'plain', text: rubyMarkup('使う','つかう'), cap:'dictionary form' },
@@ -2697,7 +2713,7 @@ function categoryFlowsHtml(category) {
     case 'shortform':
       return conjFlow('Dictionary form = casual present（no change）', [
         { type:'keep', text: rubyMarkup('読む','よむ'), cap:'use as-is' },
-      ]);
+      ]) + uVowelFlow();
     case 'command':
       return uShift('め', 'u-row → e-row', '', '') + conjFlow('Ru-Verb（stem + ろ）', [
         dictRu, arrow, stemTabe, plus, dropRu, plus,
