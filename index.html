@@ -1314,6 +1314,32 @@ table.verb-table.adv-table{min-width:620px;}
   .adv-en{width:100%;}
 }
 
+/* ===== Clearer table pages + Difficult mode ===== */
+.step-guide{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  font-size:13px;color:var(--ink-soft);margin:0 2px 14px;font-weight:600;
+}
+.step-guide b{
+  display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;
+  background:var(--navy);color:#fff;font-size:12px;margin-right:4px;
+}
+.sg-arrow{opacity:.5;}
+.cat-intro{margin:0 2px 12px;font-size:14px;color:var(--ink-soft);line-height:1.7;}
+.how-card{margin-top:22px;padding:16px 24px;}
+.how-card h3{margin:0 0 4px;font-size:15px;}
+.mode-note{margin-top:10px;font-size:13px;line-height:1.7;color:var(--ink-soft);background:var(--blue-soft);border-radius:10px;padding:10px 14px;}
+.quiz-verb.sentence{font-size:28px;line-height:2;font-weight:700;}
+.quiz-verb.sentence ruby rt{font-size:10px;}
+.sent-blank{display:inline-block;min-width:3.4em;border-bottom:3px solid var(--blue);color:transparent;margin:0 4px;}
+.sent-fill{color:#1F7A46;font-weight:900;border-bottom:3px solid var(--good);margin:0 2px;}
+.filled-sentence{font-family:'Zen Kaku Gothic New',sans-serif;font-size:20px;font-weight:700;margin:10px 0 2px;line-height:2;}
+.filled-en{font-size:13px;color:var(--ink-soft);margin-bottom:12px;}
+@media (max-width:600px){
+  .quiz-verb.sentence{font-size:22px;}
+  .filled-sentence{font-size:17px;}
+  .step-guide{font-size:12px;gap:6px;}
+}
+
 /* ===== Gate screen (student/teacher entry) ===== */
 .app{display:none;}
 .app.unlocked{display:block;}
@@ -1454,6 +1480,11 @@ table.verb-table.adv-table{min-width:620px;}
 
   <!-- ===== Conjugation table panel ===== -->
   <div class="panel active" id="panel-table">
+    <div class="step-guide">
+      <span><b>1</b> Choose a word type</span><span class="sg-arrow">→</span>
+      <span><b>2</b> Choose a form</span><span class="sg-arrow">→</span>
+      <span><b>3</b> The table appears right below</span>
+    </div>
     <div class="pos-tabs">
       <button class="postab active" data-pos="verb">Verbs</button>
       <button class="postab" data-pos="iadj">い-Adjectives</button>
@@ -1517,6 +1548,15 @@ table.verb-table.adv-table{min-width:620px;}
     <div class="setup-wrap" id="setup-wrap">
       <div class="setup-card">
         <h2>Practice Setup</h2>
+
+        <div class="setup-section">
+          <label class="section-label">Mode</label>
+          <div class="chip-grid" id="mode-chips">
+            <div class="chip selected" data-mode="easy">Easy — convert the word</div>
+            <div class="chip" data-mode="hard">Difficult — complete the sentence</div>
+          </div>
+          <div class="mode-note" id="mode-note" style="display:none;">✍ Difficult mode: you see a sentence with a blank and fill it in. For now it is available for <b>い-Adjective</b> and <b>な-Adjective</b> → <b>Adverb</b>.</div>
+        </div>
 
         <div class="setup-section">
           <label class="section-label">① Part of Speech — tap to select and view forms</label>
@@ -2865,13 +2905,13 @@ function renderGroupTable(category) {
   `).join('');
 
   tableContent.innerHTML = `
-    <div class="rule-card" style="padding:16px 24px;">
-      <button class="jump-table-btn" type="button" onclick="document.getElementById('sub-tabs-anchor').scrollIntoView({behavior:'smooth',block:'start'})">↓ Jump to the table</button>
-      <p style="margin:0 0 4px;font-size:13.5px;color:var(--ink-soft);">${CATEGORY_INTRO[category]}</p>
-      ${categoryFlowsHtml(category)}
-    </div>
+    <p class="cat-intro">${CATEGORY_INTRO[category]}</p>
     <div class="sub-tabs" id="sub-tabs-anchor">${subTabsHtml}</div>
     <div id="sub-table-body">${renderSubTableBody(category, activeSubGroup)}</div>
+    <div class="rule-card how-card">
+      <h3>How it works</h3>
+      ${categoryFlowsHtml(category)}
+    </div>
   `;
 
   tableContent.querySelectorAll('.subtab').forEach(btn => {
@@ -3164,6 +3204,53 @@ function segRuby(segs) {
   return segs.map(s => Array.isArray(s) ? `<ruby>${s[0]}<rt>${s[1]}</rt></ruby>` : s).join('');
 }
 
+// ---- Difficult mode: sentences with a blank where the adverb goes ----
+// pre / post are segment lists (string or [kanji, reading]); en is the English meaning.
+const SENTENCES = {
+  iadj: {
+    "たかい": { pre: [["値段","ねだん"],"が"], post: ["なりました。"], en: "The price went up." },
+    "やすい": { pre: ["この",["本","ほん"],"を"], post: [["買","か"],"いました。"], en: "I bought this book cheaply." },
+    "あたらしい": { pre: [["部屋","へや"],"を"], post: ["しました。"], en: "I redecorated the room (made it new)." },
+    "ふるい": { pre: ["この",["車","くるま"],"は"], post: ["なりました。"], en: "This car has gotten old." },
+    "おおきい": { pre: [["名前","なまえ"],"を"], post: [["書","か"],"いてください。"], en: "Please write your name big." },
+    "ちいさい": { pre: [["野菜","やさい"],"を"], post: [["切","き"],"ってください。"], en: "Please cut the vegetables small." },
+    "たのしい": { pre: [["友達","ともだち"],"と"], post: [["話","はな"],"しました。"], en: "I talked happily with my friend." },
+    "むずかしい": { pre: [["問題","もんだい"],"が"], post: ["なりました。"], en: "The problems got difficult." },
+    "やさしい": { pre: [["先生","せんせい"],"は"], post: [["説明","せつめい"],"してくれました。"], en: "The teacher explained it in a simple way." },
+    "あつい": { pre: [["最近","さいきん"],"、"], post: ["なりました。"], en: "It has gotten hot lately." },
+    "さむい": { pre: [["十二月","じゅうにがつ"],"になって、"], post: ["なりました。"], en: "December came and it got cold." },
+    "おいしい": { pre: [["母","はは"],"は",["料理","りょうり"],"を"], post: [["作","つく"],"ります。"], en: "My mother cooks (food) deliciously." },
+    "いそがしい": { pre: [["四月","しがつ"],"から"], post: ["なります。"], en: "I will get busy from April." },
+    "おもしろい": { pre: [["先生","せんせい"],"は",["歴史","れきし"],"を"], post: [["話","はな"],"します。"], en: "The teacher tells history in an interesting way." },
+    "いい": { pre: [["天気","てんき"],"が"], post: ["なりました。"], en: "The weather got better." },
+  },
+  naadj: {
+    "きれい": { pre: [["部屋","へや"],"を"], post: [["掃除","そうじ"],"しました。"], en: "I cleaned the room neatly." },
+    "げんき": { pre: [["薬","くすり"],"を",["飲","の"],"んで、"], post: ["なりました。"], en: "I took medicine and got well." },
+    "ゆうめい": { pre: [["彼","かれ"],"は"], post: ["なりました。"], en: "He became famous." },
+    "しんせつ": { pre: [["店","みせ"],"の",["人","ひと"],"は"], post: [["教","おし"],"えてくれました。"], en: "The shop staff kindly told me." },
+    "たいへん": { pre: [["仕事","しごと"],"が"], post: ["なりました。"], en: "Work has gotten tough." },
+    "たいせつ": { pre: ["この",["本","ほん"],"を"], post: ["してください。"], en: "Please take good care of this book." },
+    "べんり": { pre: [["新","あたら"],"しいアプリで"], post: ["なりました。"], en: "It became convenient with the new app." },
+    "かんたん": { pre: ["ルールを"], post: [["説明","せつめい"],"します。"], en: "I will explain the rules simply." },
+    "しずか": { pre: [["図書館","としょかん"],"では"], post: [["話","はな"],"してください。"], en: "Please speak quietly in the library." },
+    "にぎやか": { pre: [["町","まち"],"は",["夜","よる"],"になると"], post: ["なります。"], en: "The town gets lively at night." },
+    "ひま": { pre: [["来月","らいげつ"],"は"], post: ["なります。"], en: "I will be free next month." },
+    "すき": { pre: [["日本語","にほんご"],"が"], post: ["なりました。"], en: "I came to like Japanese." },
+    "きらい": { pre: [["野菜","やさい"],"が"], post: ["なりました。"], en: "I came to dislike vegetables." },
+    "じょうず": { pre: [["料理","りょうり"],"が"], post: ["なりました。"], en: "My cooking has gotten good." },
+    "へた": { pre: [["字","じ"],"が"], post: ["なりました。"], en: "My handwriting has gotten worse." },
+  },
+};
+const HARD_FORM_KEYS = new Set(['adverb']);
+function hardSupported(pos, hira) {
+  return !!(SENTENCES[pos] && SENTENCES[pos][hira]);
+}
+function sentenceHtml(item, fillHtml) {
+  const sn = SENTENCES[item.pos][item.verb.hira];
+  return segRuby(sn.pre) + fillHtml + segRuby(sn.post);
+}
+
 function renderAdverbPage(pos) {
   const isI = pos === 'iadj';
   const data = isI ? I_ADJECTIVES : NA_ADJECTIVES;
@@ -3334,6 +3421,7 @@ const formSelectionState = {};
 const selectedPosList = new Set();
 let currentPosTab = null;
 
+let practiceMode = 'easy'; // 'easy' (convert the word) or 'hard' (complete the sentence)
 function renderUnifiedFormChips(wrap, displayPos) {
   // Save chips for the tab that is CURRENTLY displayed (before switching)
   if (currentPosTab && currentPosTab !== displayPos) {
@@ -3345,6 +3433,7 @@ function renderUnifiedFormChips(wrap, displayPos) {
   if (!displayPos) return;
   UNIFIED_FORMS.forEach(uf => {
     if (uf.map[displayPos] === null || uf.map[displayPos] === undefined) return;
+    if (practiceMode === 'hard' && !HARD_FORM_KEYS.has(uf.key)) return;
     const chip = document.createElement('div');
     chip.className = 'chip' + (formSelectionState[displayPos][uf.key] ? ' selected' : '');
     chip.dataset.formKey = uf.key;
@@ -3416,7 +3505,7 @@ document.getElementById('pill-display-chips').querySelectorAll('.chip').forEach(
   });
 });
 
-function buildCandidates(posList, stateMap) {
+function buildCandidates(posList, stateMap, mode) {
   const candidates = [];
   const seen = new Set();
   posList.forEach(pos => {
@@ -3426,13 +3515,15 @@ function buildCandidates(posList, stateMap) {
       if (!posState[uf.key]) return;
       const formId = uf.map[pos];
       if (!formId) return;
+      if (mode === 'hard' && !HARD_FORM_KEYS.has(uf.key)) return;
       config.data.forEach(item => {
         const r = config.conjugate(item);
         if (!r[formId] || r[formId] === '—') return;
+        if (mode === 'hard' && !hardSupported(pos, item.hira)) return;
         const dedup = pos + '|' + item.kanji + '|' + formId;
         if (seen.has(dedup)) return;
         seen.add(dedup);
-        candidates.push({ verb: item, formId, pos });
+        candidates.push({ verb: item, formId, pos, mode: mode === 'hard' ? 'hard' : 'easy' });
       });
     });
   });
@@ -3473,6 +3564,16 @@ function shuffle(arr) {
   return a;
 }
 
+document.getElementById('mode-chips').querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.getElementById('mode-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+    chip.classList.add('selected');
+    practiceMode = chip.dataset.mode;
+    document.getElementById('mode-note').style.display = practiceMode === 'hard' ? 'block' : 'none';
+    renderUnifiedFormChips(formChipsWrap, currentPosTab);
+  });
+});
+
 document.getElementById('start-btn').addEventListener('click', () => {
   // Save current tab's chip states
   renderUnifiedFormChips(formChipsWrap, currentPosTab);
@@ -3491,9 +3592,11 @@ document.getElementById('start-btn').addEventListener('click', () => {
     return;
   }
 
-  let candidates = buildCandidates([...selectedPosList], formSelectionState);
+  let candidates = buildCandidates([...selectedPosList], formSelectionState, practiceMode);
   if (candidates.length === 0) {
-    alert('No questions match this combination. Please change your settings.');
+    alert(practiceMode === 'hard'
+      ? 'Difficult mode: please choose い-Adjective or な-Adjective, and select the Adverb form.'
+      : 'No questions match this combination. Please change your settings.');
     return;
   }
 
@@ -3592,9 +3695,17 @@ function showQuestion() {
     }
   }
 
-  quizVerbKanji.textContent = verb.kanji;
-  quizVerbHira.textContent = `（${verb.hira}）`;
-  quizVerbMeaning.textContent = verb.meaning;
+  const isHard = item.mode === 'hard';
+  quizVerbKanji.classList.toggle('sentence', isHard);
+  if (isHard) {
+    quizVerbKanji.innerHTML = sentenceHtml(item, '<span class="sent-blank">＿＿＿</span>');
+    quizVerbHira.textContent = `Use: ${verb.kanji}（${verb.hira}）— ${verb.meaning}`;
+    quizVerbMeaning.textContent = SENTENCES[pos][verb.hira].en;
+  } else {
+    quizVerbKanji.textContent = verb.kanji;
+    quizVerbHira.textContent = `（${verb.hira}）`;
+    quizVerbMeaning.textContent = verb.meaning;
+  }
 
   // Use the unified label ("Polite, Present, Affirmative") when available.
   const unifiedLabel = UNIFIED_LABEL_BY_POS_FORM[pos + '|' + formId] || formDef.label;
@@ -3613,7 +3724,7 @@ function showQuestion() {
   }
 
   quizTargetForm.innerHTML = `
-    <span class="qtf-arrow">→ Convert to:</span>
+    <span class="qtf-arrow">${isHard ? '→ Fill the blank with:' : '→ Convert to:'}</span>
     <span class="qtf-core">${core}</span>
     ${line2Html}
   `;
@@ -3664,15 +3775,20 @@ function checkAnswer() {
     pos,
     kanji: verb.kanji,
     hira: verb.hira,
-    formLabel: UNIFIED_LABEL_BY_POS_FORM[pos + '|' + formId] || config.formDefs.find(f => f.id === formId).label,
+    formLabel: (UNIFIED_LABEL_BY_POS_FORM[pos + '|' + formId] || config.formDefs.find(f => f.id === formId).label) + (item.mode === 'hard' ? ' [Sentence]' : ''),
     correctAnswer,
     userAnswer,
-    isCorrect
+    isCorrect,
+    mode: item.mode
   });
 
+  const filledLine = item.mode === 'hard'
+    ? `<div class="filled-sentence">${sentenceHtml(item, '<span class="sent-fill">' + correctAnswer + '</span>')}</div><div class="filled-en">${SENTENCES[pos][verb.hira].en}</div>`
+    : '';
   feedbackEl.innerHTML = `
     <div class="feedback-result ${isCorrect ? 'ok' : 'no'}">${isCorrect ? 'Correct! ⭕' : 'Incorrect ✕'}</div>
     ${!isCorrect ? `<div style="font-size:13px;color:var(--ink-soft);margin-bottom:4px;">Correct answer:</div><div class="correct-answer">${correctAnswer}</div>` : ''}
+    ${filledLine}
     <button type="button" class="next-btn" id="next-btn">${currentIndex + 1 < quizQueue.length ? 'Next Question' : 'See Results'}</button>
   `;
   scoreText.textContent = `○${correctCount} ✕${wrongCount}`;
@@ -3747,7 +3863,7 @@ document.getElementById('retry-wrong-btn').addEventListener('click', () => {
   const wrongOnes = reviewLog.filter(r => !r.isCorrect);
   if (wrongOnes.length === 0) return;
 
-  quizQueue = shuffle(wrongOnes.map(r => ({ verb: r.verb, formId: r.formId, pos: r.pos })));
+  quizQueue = shuffle(wrongOnes.map(r => ({ verb: r.verb, formId: r.formId, pos: r.pos, mode: r.mode })));
   currentIndex = 0;
   correctCount = 0;
   wrongCount = 0;
