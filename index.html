@@ -1324,6 +1324,7 @@ table.verb-table.adv-table{min-width:620px;}
   background:var(--navy);color:#fff;font-size:12px;margin-right:4px;
 }
 .sg-arrow{opacity:.5;}
+.sg-or{opacity:.8;}
 .cat-intro{margin:0 2px 12px;font-size:14px;color:var(--ink-soft);line-height:1.7;}
 .how-card{margin-top:22px;padding:16px 24px;}
 .how-card h3{margin:0 0 4px;font-size:15px;}
@@ -1338,6 +1339,50 @@ table.verb-table.adv-table{min-width:620px;}
   .quiz-verb.sentence{font-size:22px;}
   .filled-sentence{font-size:17px;}
   .step-guide{font-size:12px;gap:6px;}
+}
+
+/* ===== Find a word ===== */
+.postab-search{border-style:dashed;background:var(--blue-soft);}
+.lk-box{background:var(--paper);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:16px;}
+.lk-ask{display:block;font-family:'Zen Kaku Gothic New',sans-serif;font-weight:700;font-size:16px;color:var(--navy);margin-bottom:10px;}
+.lk-input{
+  width:100%;font-size:20px;font-family:'Noto Sans JP',sans-serif;padding:13px 16px;
+  border-radius:12px;border:2px solid var(--line);background:#fff;outline:none;
+}
+.lk-input:focus{border-color:var(--blue);}
+.lk-hint{margin:14px 2px 4px;font-size:13px;color:var(--ink-soft);font-weight:600;}
+.lk-group-title{margin:14px 2px 6px;font-size:12px;font-weight:700;color:var(--ink-soft);letter-spacing:.04em;}
+.lk-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.lk-group-title + .lk-chips{margin-top:0;}
+.lk-chip{
+  font-family:'Zen Kaku Gothic New',sans-serif;font-weight:700;font-size:15px;
+  padding:7px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--paper);color:var(--navy);cursor:pointer;
+  display:inline-flex;flex-direction:column;align-items:center;line-height:1.25;
+}
+.lk-chip:hover{background:var(--blue-soft);border-color:var(--blue);}
+.lk-chip-sub{font-size:10px;font-weight:500;color:var(--ink-soft);}
+.lk-again{margin-top:12px;font-family:'Zen Kaku Gothic New',sans-serif;font-weight:700;font-size:13px;padding:7px 14px;border-radius:999px;border:1.5px solid var(--navy);background:#fff;color:var(--navy);cursor:pointer;}
+.lk-card{background:var(--paper);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;}
+.lk-head{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--line);}
+.lk-word{font-family:'Zen Kaku Gothic New',sans-serif;font-weight:900;font-size:34px;color:var(--ink);}
+.lk-word ruby rt{font-size:12px;font-weight:500;color:var(--ink-soft);}
+.lk-meta{display:flex;flex-direction:column;gap:6px;align-items:flex-start;}
+.lk-pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;}
+.lk-meaning{font-size:15px;color:var(--ink-soft);}
+.lk-section{margin-top:18px;}
+.lk-section-title{font-family:'Zen Kaku Gothic New',sans-serif;font-weight:800;font-size:14px;color:var(--navy);margin-bottom:8px;}
+.lk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;}
+.lk-cell{background:var(--cream);border-radius:10px;padding:9px 12px;}
+.lk-label{font-size:11px;color:var(--ink-soft);font-weight:600;line-height:1.35;margin-bottom:3px;}
+.lk-form{font-size:18px;font-weight:700;}
+@media (max-width:600px){
+  .lk-box{padding:16px 14px;}
+  .lk-card{padding:16px 14px;}
+  .lk-word{font-size:28px;}
+  .lk-grid{grid-template-columns:1fr 1fr;}
+  .lk-form{font-size:16px;}
+  .postab-search{flex-basis:100%;flex:none;width:100%;}
+  .pos-tabs{flex-wrap:wrap;}
 }
 
 /* ===== Gate screen (student/teacher entry) ===== */
@@ -1484,12 +1529,14 @@ table.verb-table.adv-table{min-width:620px;}
       <span><b>1</b> Choose a word type</span><span class="sg-arrow">→</span>
       <span><b>2</b> Choose a form</span><span class="sg-arrow">→</span>
       <span><b>3</b> The table appears right below</span>
+      <span class="sg-or">· or one word: 🔍 Find a word</span>
     </div>
     <div class="pos-tabs">
       <button class="postab active" data-pos="verb">Verbs</button>
       <button class="postab" data-pos="iadj">い-Adjectives</button>
       <button class="postab" data-pos="naadj">な-Adjectives</button>
       <button class="postab" data-pos="noun">Nouns</button>
+      <button class="postab postab-search" data-pos="search">🔍 Find a word</button>
     </div>
 
     <div class="group-tabs pos-group" data-pos-group="verb">
@@ -2961,6 +3008,11 @@ document.querySelectorAll('.postab').forEach(btn => {
     document.querySelectorAll('.postab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const pos = btn.dataset.pos;
+    if (pos === 'search') {
+      document.querySelectorAll('.pos-group').forEach(group => { group.style.display = 'none'; });
+      renderLookup();
+      return;
+    }
     document.querySelectorAll('.pos-group').forEach(group => {
       group.style.display = group.dataset.posGroup === pos ? 'flex' : 'none';
     });
@@ -3337,6 +3389,126 @@ function renderAdverbPage(pos) {
       </div>
     </div>
   `;
+}
+
+// ============ Find a word: type a word, see every form on one page ============
+const LOOKUP_ALL = [
+  ...VERBS.map(item => ({ pos: 'verb', item })),
+  ...I_ADJECTIVES.map(item => ({ pos: 'iadj', item })),
+  ...NA_ADJECTIVES.map(item => ({ pos: 'naadj', item })),
+  ...NOUNS.map(item => ({ pos: 'noun', item })),
+];
+const LOOKUP_POS_NAMES = { verb: 'Verbs', iadj: 'い-Adjectives', naadj: 'な-Adjectives', noun: 'Nouns' };
+
+// Groups the many verb forms into a few readable sections.
+function lookupSectionFor(pos, def) {
+  if (pos !== 'verb') {
+    return { plain: 'Plain', polite: 'Polite', other: 'Other forms' }[def.category] || 'Other forms';
+  }
+  const id = def.id;
+  if (id.startsWith('masu')) return 'Polite (ます)';
+  if (id === 'naiform' || id === 'naiPast' || id === 'ta') return 'Casual (ない・た)';
+  if (id === 'te' || id.startsWith('teiru')) return 'て-form and ている';
+  if (id.startsWith('conditional') || id.startsWith('tara')) return 'Conditional (ば・たら)';
+  if (id.startsWith('potential')) return 'Potential (can)';
+  if (id === 'volitional' || id === 'command' || id === 'prohibitive') return 'Let\'s / Command / Don\'t';
+  if (id.startsWith('causativePassive')) return 'Causative-Passive';
+  if (id.startsWith('causative')) return 'Causative (make / let)';
+  if (id.startsWith('passive')) return 'Passive';
+  if (id.startsWith('tai')) return 'Desire (want to)';
+  return 'Other forms';
+}
+
+function lookupResultHtml(entry) {
+  const { pos, item } = entry;
+  const config = POS_CONFIG[pos];
+  const r = config.conjugate(item);
+  const hl = pos === 'verb' ? ({ ru: 'ru-change', u: 'u-change', irr: 'irr-change' }[item.group]) : ({ iadj: 'ru-change', naadj: 'u-change', noun: 'irr-change' }[pos]);
+  const sections = [];
+  const byName = {};
+  config.formDefs.forEach(def => {
+    if (!r[def.id] || r[def.id] === '—') return;
+    const name = lookupSectionFor(pos, def);
+    if (!byName[name]) { byName[name] = { name, cells: [] }; sections.push(byName[name]); }
+    byName[name].cells.push(`<div class="lk-cell"><div class="lk-label">${def.label}</div><div class="lk-form"><span class="change-highlight ${hl}">${r[def.id]}</span></div></div>`);
+  });
+  const pill = pos === 'verb'
+    ? `${GROUP_LABELS[item.group]} <span class="pill-sub">(${GROUP_SUBLABELS[item.group]})</span>`
+    : POS_PILL_LABELS[pos];
+  const pc = pos === 'verb'
+    ? { bg: { ru: 'var(--ru-bg)', u: 'var(--u-bg)', irr: 'var(--irr-bg)' }[item.group], color: { ru: 'var(--ru)', u: 'var(--u)', irr: 'var(--irr)' }[item.group] }
+    : POS_PILL_COLORS[pos];
+  return `
+    <div class="lk-card">
+      <div class="lk-head">
+        <div class="lk-word">${rubyMarkup(item.kanji, item.hira)}</div>
+        <div class="lk-meta">
+          <span class="lk-pill" style="background:${pc.bg};color:${pc.color};">${pill}</span>
+          <span class="lk-meaning">${item.meaning}</span>
+        </div>
+      </div>
+      ${sections.map(sec => `<div class="lk-section"><div class="lk-section-title">${sec.name}</div><div class="lk-grid">${sec.cells.join('')}</div></div>`).join('')}
+    </div>`;
+}
+
+function renderLookup() {
+  tableContent.innerHTML = `
+    <div class="lk-box">
+      <label class="lk-ask" for="lookup-input">Which word do you want to see?</label>
+      <input type="text" id="lookup-input" class="lk-input" autocomplete="off" lang="ja"
+             placeholder="Type a word — 食べる / たべる / taberu / eat">
+      <div id="lookup-suggest"></div>
+    </div>
+    <div id="lookup-result"></div>
+  `;
+  const input = document.getElementById('lookup-input');
+  const suggest = document.getElementById('lookup-suggest');
+  const result = document.getElementById('lookup-result');
+
+  function chipHtml(e, idx) {
+    return `<button type="button" class="lk-chip" data-idx="${idx}">${e.item.kanji}${e.item.kanji !== e.item.hira ? `<span class="lk-chip-sub">${e.item.hira}</span>` : ''}</button>`;
+  }
+  function showSuggestions() {
+    const q = input.value.trim().toLowerCase();
+    let html = '';
+    if (!q) {
+      html += '<div class="lk-hint">Or tap a word:</div>';
+      ['verb', 'iadj', 'naadj', 'noun'].forEach(pos => {
+        html += `<div class="lk-group-title">${LOOKUP_POS_NAMES[pos]}</div><div class="lk-chips">` +
+          LOOKUP_ALL.map((e, i) => e.pos === pos ? chipHtml(e, i) : '').join('') + '</div>';
+      });
+    } else {
+      const hits = LOOKUP_ALL.map((e, i) => ({ e, i })).filter(({ e }) => {
+        const it = e.item;
+        return [it.kanji, it.hira, it.romaji || '', it.meaning].some(t => t.toLowerCase().includes(q));
+      }).slice(0, 24);
+      html = hits.length
+        ? '<div class="lk-chips">' + hits.map(({ e, i }) => chipHtml(e, i) + '').join('') + '</div>'
+        : '<div class="lk-hint">No match. This app only has the words listed in the tables.</div>';
+    }
+    suggest.innerHTML = html;
+  }
+  function choose(idx) {
+    const e = LOOKUP_ALL[idx];
+    input.value = e.item.kanji;
+    suggest.innerHTML = '<button type="button" class="lk-again" id="lk-again">← Pick another word</button>';
+    document.getElementById('lk-again').addEventListener('click', () => { input.value = ''; result.innerHTML = ''; showSuggestions(); input.focus(); });
+    result.innerHTML = lookupResultHtml(e);
+    result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  suggest.addEventListener('click', ev => {
+    const chip = ev.target.closest('.lk-chip');
+    if (chip) choose(Number(chip.dataset.idx));
+  });
+  input.addEventListener('input', () => { result.innerHTML = ''; showSuggestions(); });
+  input.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      const first = suggest.querySelector('.lk-chip');
+      if (first) choose(Number(first.dataset.idx));
+    }
+  });
+  showSuggestions();
 }
 
 renderRulesPage(); // initial view
