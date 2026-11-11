@@ -1244,6 +1244,76 @@ table.dash-table tr.row-wrong td{background:#FCEFED;}
   .gate-title{font-size:24px;}
 }
 
+/* ===== Adverb pages ===== */
+.rule-card p.adv-lead{font-size:14px;color:var(--ink);line-height:1.8;}
+.rule-card p.adv-note{font-size:13.5px;color:var(--ink-soft);}
+.adv-compare{display:grid;gap:8px;margin:14px 0;}
+.adv-compare-row{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  background:var(--cream);border-radius:12px;padding:12px 16px;
+}
+.adv-tag{
+  font-family:'Inter',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.04em;
+  padding:3px 10px;border-radius:999px;min-width:74px;text-align:center;
+}
+.adv-tag-adj{background:var(--blue-soft);color:var(--navy);}
+.adv-tag-adv{background:#EAF7EF;color:#1F7A46;}
+.adv-jp{font-family:'Zen Kaku Gothic New',sans-serif;font-weight:700;font-size:20px;color:var(--ink);}
+.adv-jp b{color:#1F7A46;}
+.adv-tag-adj + .adv-jp b{color:var(--blue);}
+.adv-jp rt{font-size:10px;font-weight:600;}
+.adv-en{font-size:13px;color:var(--ink-soft);}
+table.verb-table.adv-table{min-width:620px;}
+.adv-ex{font-size:15px;}
+
+.gtab-more,.jump-table-btn{display:none;}
+/* The selected sub-tab is highlighted for every part of speech (it used to be verbs only). */
+.gtab.active{background:var(--navy);border-color:var(--navy);color:#fff;}
+.rule-card p.adv-note b{white-space:nowrap;}
+
+@media (max-width:600px){
+  .app{padding:16px 12px 48px;}
+  .app-title .sub{display:none;}
+  .app-header{margin-bottom:14px;}
+  .tabs{width:100%;border-radius:16px;gap:4px;margin-bottom:16px;}
+  .tab-btn{flex:1;padding:8px 4px;font-size:12.5px;line-height:1.35;border-radius:12px;}
+  .pos-tabs{gap:6px;margin-bottom:12px;flex-wrap:nowrap;}
+  .postab{flex:1;padding:10px 2px;font-size:12.5px;white-space:nowrap;}
+  .group-tabs{gap:6px;margin-bottom:14px;}
+  .gtab{padding:7px 12px 8px;font-size:13px;}
+  .gtab-divider{display:none;}
+  .gtab-more{
+    display:inline-flex;font-family:'Zen Kaku Gothic New',sans-serif;font-weight:700;font-size:13px;
+    padding:7px 12px 8px;border-radius:10px;border:1.5px dashed var(--blue);
+    background:var(--blue-soft);color:var(--navy);cursor:pointer;
+  }
+  .pos-group[data-pos-group="verb"]:not(.show-adv) .gtab-more ~ .gtab{display:none;}
+  .rule-card{padding:16px 14px;}
+  .rule-card p{font-size:13px;}
+  .conj-flow{padding:12px 8px 8px;gap:3px;}
+  .cf-block{font-size:16px;padding:5px 7px;}
+  .cf-arrow{font-size:15px;padding:0;}
+  .cf-plus{font-size:13px;}
+  .cf-cap{max-width:80px;font-size:9.5px;}
+  .answer-input{min-width:0;font-size:18px;padding:13px 12px;}
+  .answer-input::placeholder{font-size:13px;}
+  .submit-btn{padding:14px 16px;}
+  .jump-table-btn{
+    display:inline-block;margin:0 0 10px;font-family:'Zen Kaku Gothic New',sans-serif;font-weight:700;font-size:13px;
+    padding:7px 14px;border-radius:999px;border:none;background:var(--navy);color:#fff;cursor:pointer;
+  }
+  .verb-table-wrap::before{
+    content:"← Swipe the table sideways →";
+    display:block;text-align:center;font-size:11px;font-weight:600;color:var(--ink-soft);padding:7px 8px 6px;
+  }
+  table.verb-table thead th:first-child,
+  table.verb-table tbody td:first-child{position:sticky;left:0;z-index:2;box-shadow:2px 0 0 var(--line);}
+  table.verb-table tbody td:first-child{background:var(--paper);}
+  table.verb-table thead th:first-child{z-index:3;}
+  .adv-jp{font-size:18px;}
+  .adv-en{width:100%;}
+}
+
 /* ===== Gate screen (student/teacher entry) ===== */
 .app{display:none;}
 .app.unlocked{display:block;}
@@ -1399,6 +1469,7 @@ table.dash-table tr.row-wrong td{background:#FCEFED;}
       <button class="gtab" data-g="te">て-form</button>
       <button class="gtab" data-g="shortform">Short Form</button>
       <span class="gtab-divider">Advanced</span>
+      <button class="gtab-more" id="gtab-more-btn" type="button" aria-expanded="false">Advanced ▾</button>
       <button class="gtab" data-g="command">Command</button>
       <button class="gtab" data-g="conditional">Conditional</button>
       <button class="gtab" data-g="volitional">Volitional</button>
@@ -1418,7 +1489,8 @@ table.dash-table tr.row-wrong td{background:#FCEFED;}
       <button class="gtab active" data-g="iadjRules">Rules</button>
       <button class="gtab" data-g="iadjPlain">Plain Forms</button>
       <button class="gtab" data-g="iadjPolite">Polite Forms</button>
-      <button class="gtab" data-g="iadjOther">て / たら / 〜く</button>
+      <button class="gtab" data-g="iadjOther">て / たら</button>
+      <button class="gtab" data-g="iadjAdverb">Adverb (〜く)</button>
     </div>
 
     <div class="group-tabs pos-group" data-pos-group="naadj" style="display:none;">
@@ -1426,6 +1498,7 @@ table.dash-table tr.row-wrong td{background:#FCEFED;}
       <button class="gtab" data-g="naadjPlain">Plain Forms</button>
       <button class="gtab" data-g="naadjPolite">Polite Forms</button>
       <button class="gtab" data-g="naadjOther">て / たら / 〜な</button>
+      <button class="gtab" data-g="naadjAdverb">Adverb (〜に)</button>
     </div>
 
     <div class="group-tabs pos-group" data-pos-group="noun" style="display:none;">
@@ -1933,7 +2006,7 @@ const IADJ_FORM_DEFS = [
   { id: "pastNegativePolite", label: "Polite Past Negative (〜くなかったです)", example: "wasn't expensive", category: "polite" },
   { id: "te", label: "て-form (〜くて)", example: "expensive, and ~", category: "other" },
   { id: "tara", label: "Conditional (〜かったら)", example: "if/when expensive", category: "other" },
-  { id: "adverbial", label: "Adverbial (〜く)", example: "expensively", category: "other" },
+  { id: "adverbial", label: "Adverb (〜く)", example: "expensively", category: "other" },
 ];
 
 const NAADJ_FORM_DEFS = [
@@ -1948,6 +2021,7 @@ const NAADJ_FORM_DEFS = [
   { id: "te", label: "て-form (〜で)", example: "energetic, and ~", category: "other" },
   { id: "tara", label: "Conditional (〜だったら)", example: "if/when energetic", category: "other" },
   { id: "adnominal", label: "Before a Noun (〜な)", example: "an energetic ~", category: "other" },
+  { id: "adverbial", label: "Adverb (〜に)", example: "energetically", category: "other" },
 ];
 
 const NOUN_FORM_DEFS = [
@@ -2188,6 +2262,7 @@ function conjugateNaAdj(adj) {
   result.te = adj.hira + "で";
   result.tara = adj.hira + "だったら";
   result.adnominal = adj.hira + "な"; // the form used directly before a noun, e.g. 元気な人
+  result.adverbial = adj.hira + "に"; // the adverb form used before a verb, e.g. 静かに話す
   return result;
 }
 
@@ -2791,10 +2866,11 @@ function renderGroupTable(category) {
 
   tableContent.innerHTML = `
     <div class="rule-card" style="padding:16px 24px;">
+      <button class="jump-table-btn" type="button" onclick="document.getElementById('sub-tabs-anchor').scrollIntoView({behavior:'smooth',block:'start'})">↓ Jump to the table</button>
       <p style="margin:0 0 4px;font-size:13.5px;color:var(--ink-soft);">${CATEGORY_INTRO[category]}</p>
       ${categoryFlowsHtml(category)}
     </div>
-    <div class="sub-tabs">${subTabsHtml}</div>
+    <div class="sub-tabs" id="sub-tabs-anchor">${subTabsHtml}</div>
     <div id="sub-table-body">${renderSubTableBody(category, activeSubGroup)}</div>
   `;
 
@@ -2818,12 +2894,26 @@ document.querySelectorAll('.gtab').forEach(btn => {
     else if (g === 'iadjRules') renderIAdjRules();
     else if (g === 'naadjRules') renderNaAdjRules();
     else if (g === 'nounRules') renderNounRules();
+    else if (g === 'iadjAdverb') renderAdverbPage('iadj');
+    else if (g === 'naadjAdverb') renderAdverbPage('naadj');
     else if (g.startsWith('iadj')) renderIAdjTable(g);
     else if (g.startsWith('naadj')) renderNaAdjTable(g);
     else if (g.startsWith('noun')) renderNounTable(g);
     else renderGroupTable(g);
   });
 });
+
+// On phones the advanced verb forms are folded away behind one button, so
+// the table is visible right under the tabs instead of a full screen of buttons.
+(function () {
+  const moreBtn = document.getElementById('gtab-more-btn');
+  const verbGroup = document.querySelector('.pos-group[data-pos-group="verb"]');
+  moreBtn.addEventListener('click', () => {
+    const open = verbGroup.classList.toggle('show-adv');
+    moreBtn.textContent = open ? 'Advanced ▴' : 'Advanced ▾';
+    moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+})();
 
 // ============ Part-of-speech switching ============
 document.querySelectorAll('.postab').forEach(btn => {
@@ -2885,7 +2975,6 @@ const IADJ_COLUMNS = {
   iadjOther: [
     { key: "te", label: "て-form (〜くて)" },
     { key: "tara", label: "Conditional (〜かったら)" },
-    { key: "adverbial", label: "Adverbial (〜く)" },
   ],
 };
 
@@ -3032,6 +3121,137 @@ function renderNounTable(category) {
   `;
 }
 
+// ---- Adjective → Adverb pages (高い → 高く / 静か → 静かに) ----
+// Example phrases are written as segments: a plain string, or [kanji, reading].
+const ADVERB_EXAMPLES = {
+  iadj: {
+    "たかい": { jp: [["高","たか"],"くなる"], en: "get expensive" },
+    "やすい": { jp: [["安","やす"],"く",["買","か"],"う"], en: "buy (it) cheaply" },
+    "あたらしい": { jp: [["新","あたら"],"しくなる"], en: "become new" },
+    "ふるい": { jp: [["古","ふる"],"くなる"], en: "get old" },
+    "おおきい": { jp: [["大","おお"],"きく",["書","か"],"く"], en: "write (it) big" },
+    "ちいさい": { jp: [["小","ちい"],"さく",["切","き"],"る"], en: "cut (it) small" },
+    "たのしい": { jp: [["楽","たの"],"しく",["話","はな"],"す"], en: "talk happily" },
+    "むずかしい": { jp: [["難","むずか"],"しくなる"], en: "get difficult" },
+    "やさしい": { jp: [["易","やさ"],"しく",["説明","せつめい"],"する"], en: "explain (it) simply" },
+    "あつい": { jp: [["暑","あつ"],"くなる"], en: "get hot" },
+    "さむい": { jp: [["寒","さむ"],"くなる"], en: "get cold" },
+    "おいしい": { jp: ["おいしく",["作","つく"],"る"], en: "make (it) tasty" },
+    "いそがしい": { jp: [["忙","いそが"],"しくなる"], en: "get busy" },
+    "おもしろい": { jp: [["面白","おもしろ"],"く",["話","はな"],"す"], en: "tell (it) in a fun way" },
+    "いい": { jp: ["よくなる"], en: "get better" },
+  },
+  naadj: {
+    "きれい": { jp: ["きれいに",["書","か"],"く"], en: "write neatly" },
+    "げんき": { jp: [["元気","げんき"],"になる"], en: "get well" },
+    "ゆうめい": { jp: [["有名","ゆうめい"],"になる"], en: "become famous" },
+    "しんせつ": { jp: [["親切","しんせつ"],"にする"], en: "be kind (to someone)" },
+    "たいへん": { jp: [["大変","たいへん"],"になる"], en: "get tough" },
+    "たいせつ": { jp: [["大切","たいせつ"],"にする"], en: "take good care of (it)" },
+    "べんり": { jp: [["便利","べんり"],"になる"], en: "become convenient" },
+    "かんたん": { jp: [["簡単","かんたん"],"に",["説明","せつめい"],"する"], en: "explain (it) simply" },
+    "しずか": { jp: [["静","しず"],"かに",["話","はな"],"す"], en: "speak quietly" },
+    "にぎやか": { jp: ["にぎやかになる"], en: "get lively" },
+    "ひま": { jp: [["暇","ひま"],"になる"], en: "become free" },
+    "すき": { jp: [["好","す"],"きになる"], en: "come to like (it)" },
+    "きらい": { jp: [["嫌","きら"],"いになる"], en: "come to dislike (it)" },
+    "じょうず": { jp: [["上手","じょうず"],"になる"], en: "get good (at it)" },
+    "へた": { jp: [["下手","へた"],"になる"], en: "get worse (at it)" },
+  },
+};
+
+function segRuby(segs) {
+  return segs.map(s => Array.isArray(s) ? `<ruby>${s[0]}<rt>${s[1]}</rt></ruby>` : s).join('');
+}
+
+function renderAdverbPage(pos) {
+  const isI = pos === 'iadj';
+  const data = isI ? I_ADJECTIVES : NA_ADJECTIVES;
+  const conj = isI ? conjugateIAdj : conjugateNaAdj;
+  const hl = isI ? 'ru-change' : 'u-change';
+  const ending = isI ? 'く' : 'に';
+
+  const rules = isI ? `
+    <div class="rule-card">
+      <h3>い-Adjective → Adverb（〜く）</h3>
+      <p class="adv-lead">An adjective describes a <b>thing</b>. An adverb describes <b>how you do something</b>. To make an adverb from an い-adjective, drop the final い and add く.</p>
+      ${conjFlow('Drop い, add く', [
+        { type:'plain', text: rubyMarkup('大きい','おおきい'), cap:'dictionary form' },
+        { type:'arrow' },
+        { type:'keep', text: segRuby([['大','おお'],'き']), cap:'keep (stem)' },
+        { type:'plus' },
+        { type:'drop', text:'い', cap:'drop い' },
+        { type:'plus' },
+        { type:'end', text:'く', cap:'adverb ending' },
+      ])}
+      <div class="adv-compare">
+        <div class="adv-compare-row"><span class="adv-tag adv-tag-adj">Adjective</span><span class="adv-jp">${segRuby([['大','おお'],'き<b>い</b>',['字','じ']])}</span><span class="adv-en">a <b>big</b> letter — describes the noun</span></div>
+        <div class="adv-compare-row"><span class="adv-tag adv-tag-adv">Adverb</span><span class="adv-jp">${segRuby([['大','おお'],'き<b>く</b>',['書','か'],'く'])}</span><span class="adv-en">write <b>big</b> — describes the verb</span></div>
+      </div>
+      ${conjFlow('With なる (become) and する (make) — same 〜く form', [
+        { type:'keep', text: segRuby([['寒','さむ'],'く']), cap:'cold → 〜く' },
+        { type:'plus' },
+        { type:'end', text:'なる', cap:'= get cold' },
+      ])}
+      ${conjFlow('', [
+        { type:'keep', text: segRuby([['安','やす'],'く']), cap:'cheap → 〜く' },
+        { type:'plus' },
+        { type:'end', text:'する', cap:'= make it cheaper' },
+      ])}
+      <p class="adv-note">⚠ いい (good) is the one exception: it becomes <b>よく</b>, not いく. よく also means "often" or "well": よく${segRuby([['寝','ね'],'る'])} (sleep well).</p>
+    </div>` : `
+    <div class="rule-card">
+      <h3>な-Adjective → Adverb（〜に）</h3>
+      <p class="adv-lead">An adjective describes a <b>thing</b>. An adverb describes <b>how you do something</b>. To make an adverb from a な-adjective, just add に — in the same spot where you would put な before a noun.</p>
+      ${conjFlow('The word stays the same — add に', [
+        { type:'keep', text: rubyMarkup('静か','しずか'), cap:'stays the same' },
+        { type:'plus' },
+        { type:'end', text:'に', cap:'adverb ending' },
+        { type:'plus' },
+        { type:'plain', text: rubyMarkup('話す','はなす'), cap:'verb' },
+      ])}
+      <div class="adv-compare">
+        <div class="adv-compare-row"><span class="adv-tag adv-tag-adj">Adjective</span><span class="adv-jp">${segRuby([['静','しず'],'か<b>な</b>',['部屋','へや']])}</span><span class="adv-en">a <b>quiet</b> room — describes the noun</span></div>
+        <div class="adv-compare-row"><span class="adv-tag adv-tag-adv">Adverb</span><span class="adv-jp">${segRuby([['静','しず'],'か<b>に</b>',['話','はな'],'す'])}</span><span class="adv-en">speak <b>quietly</b> — describes the verb</span></div>
+      </div>
+      ${conjFlow('With なる (become) and する (make) — same 〜に form', [
+        { type:'keep', text: segRuby([['元気','げんき'],'に']), cap:'healthy → 〜に' },
+        { type:'plus' },
+        { type:'end', text:'なる', cap:'= get well' },
+      ])}
+      ${conjFlow('', [
+        { type:'keep', text: 'きれいに', cap:'clean → 〜に' },
+        { type:'plus' },
+        { type:'end', text:'する', cap:'= make it clean' },
+      ])}
+      <p class="adv-note">⚠ きれい and ${segRuby([['嫌','きら'],'い'])} end in い, but they are な-adjectives: きれい<b>に</b>, ${segRuby([['嫌','きら'],'い'])}<b>に</b> (not きれく).</p>
+    </div>`;
+
+  const rows = data.map(adj => {
+    const r = conj(adj);
+    const ex = ADVERB_EXAMPLES[pos][adj.hira];
+    return `<tr>
+      <td class="kanji-cell">${rubyMarkup(adj.kanji, adj.hira)}</td>
+      <td class="meaning-cell">${adj.meaning}</td>
+      <td><span class="change-highlight ${hl}">${r.adverbial}</span></td>
+      <td class="kanji-cell adv-ex">${ex ? segRuby(ex.jp) : ''}</td>
+      <td class="meaning-cell">${ex ? ex.en : ''}</td>
+    </tr>`;
+  }).join('');
+
+  tableContent.innerHTML = `
+    ${rules}
+    <div class="verb-table-wrap">
+      <div class="table-scroll">
+        <table class="verb-table adv-table">
+          <thead><tr><th>Kanji</th><th>Meaning</th><th>Adverb (〜${ending})</th><th>Example</th><th>Example meaning</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
 renderRulesPage(); // initial view
 
 // ============ Practice panel: setup ============
@@ -3088,7 +3308,8 @@ const UNIFIED_FORMS = [
   { key: 'desire_past',               label: 'Desire (〜たい), Past, Affirmative',                    map: { verb: 'taiPast',                   iadj: null,                 naadj: null,                 noun: null                 } },
   { key: 'desire_neg',                label: 'Desire (〜たい), Present, Negative',                map: { verb: 'taiNegative',               iadj: null,                 naadj: null,                 noun: null                 } },
   { key: 'desire_pastneg',            label: 'Desire (〜たい), Past, Negative',           map: { verb: 'taiPastNegative',           iadj: null,                 naadj: null,                 noun: null                 } },
-  { key: 'adjectival',                label: 'Adjectival / Adverbial',         map: { verb: null,                        iadj: 'adverbial',          naadj: 'adnominal',          noun: null                 } },
+  { key: 'adverb',                    label: 'Adverb (〜く / 〜に)',            labelByPos: { iadj: 'Adverb (〜く)', naadj: 'Adverb (〜に)' }, map: { verb: null, iadj: 'adverbial', naadj: 'adverbial', noun: null } },
+  { key: 'before_noun',               label: 'Before a Noun (〜な)',            map: { verb: null, iadj: null, naadj: 'adnominal', noun: null } },
 ];
 
 // Reverse lookup: pos|formId → unified label (used on question cards so the
@@ -3096,7 +3317,7 @@ const UNIFIED_FORMS = [
 const UNIFIED_LABEL_BY_POS_FORM = {};
 UNIFIED_FORMS.forEach(uf => {
   Object.entries(uf.map).forEach(([pos, formId]) => {
-    if (formId) UNIFIED_LABEL_BY_POS_FORM[pos + '|' + formId] = uf.label;
+    if (formId) UNIFIED_LABEL_BY_POS_FORM[pos + '|' + formId] = (uf.labelByPos && uf.labelByPos[pos]) || uf.label;
   });
 });
 
@@ -3127,7 +3348,7 @@ function renderUnifiedFormChips(wrap, displayPos) {
     const chip = document.createElement('div');
     chip.className = 'chip' + (formSelectionState[displayPos][uf.key] ? ' selected' : '');
     chip.dataset.formKey = uf.key;
-    chip.textContent = uf.label;
+    chip.textContent = (uf.labelByPos && uf.labelByPos[displayPos]) || uf.label;
     chip.addEventListener('click', () => {
       chip.classList.toggle('selected');
       formSelectionState[displayPos][uf.key] = chip.classList.contains('selected');
@@ -3574,7 +3795,7 @@ function renderGameFormChips(wrap, displayPos) {
     const chip = document.createElement('div');
     chip.className = 'chip' + (gameFormSelectionState[displayPos][uf.key] ? ' selected' : '');
     chip.dataset.formKey = uf.key;
-    chip.textContent = uf.label;
+    chip.textContent = (uf.labelByPos && uf.labelByPos[displayPos]) || uf.label;
     chip.addEventListener('click', () => {
       chip.classList.toggle('selected');
       gameFormSelectionState[displayPos][uf.key] = chip.classList.contains('selected');
