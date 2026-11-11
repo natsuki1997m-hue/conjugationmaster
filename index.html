@@ -1602,7 +1602,7 @@ table.verb-table.adv-table{min-width:620px;}
             <div class="chip selected" data-mode="easy">Easy — convert the word</div>
             <div class="chip" data-mode="hard">Difficult — complete the sentence</div>
           </div>
-          <div class="mode-note" id="mode-note" style="display:none;">✍ Difficult mode: you see a sentence with a blank and fill it in. For now it is available for <b>い-Adjective</b> and <b>な-Adjective</b> → <b>Adverb</b>.</div>
+          <div class="mode-note" id="mode-note" style="display:none;">✍ Difficult mode: you see a sentence with a blank. Type the word in the form shown, so that the sentence is complete.</div>
         </div>
 
         <div class="setup-section">
@@ -3294,13 +3294,85 @@ const SENTENCES = {
     "へた": { pre: [["字","じ"],"が"], post: ["なりました。"], en: "My handwriting has gotten worse." },
   },
 };
-const HARD_FORM_KEYS = new Set(['adverb']);
-function hardSupported(pos, hira) {
-  return !!(SENTENCES[pos] && SENTENCES[pos][hira]);
+// ---- Difficult mode for every form: a sentence frame with a blank ----
+// {漢字|よみ} marks furigana; ＿＿＿ marks where the conjugated word goes.
+// 'verb' frames are for verbs; 'other' frames are shared by い-adj, な-adj and nouns.
+const FP = (jp, en) => ({ jp, en });
+const FQ = (inner, en) => ({
+  jp: `{友達|ともだち}は「${inner}」と{言|い}いました。`,
+  en: `My friend said, "${en}"`,
+});
+const FRAMES = {
+  polite_present:  { verb: FP('{毎日|まいにち}、＿＿＿。', 'Every day, I ___.'), other: FP('これは＿＿＿。', 'This is ___.') },
+  polite_past:     { verb: FP('{昨日|きのう}、＿＿＿。', 'Yesterday, I ___.'), other: FP('{昨日|きのう}は＿＿＿。', 'Yesterday it was ___.') },
+  polite_negative: { verb: FP('{私|わたし}は{全然|ぜんぜん}＿＿＿。', "I don't ___ at all."), other: FP('これは{全然|ぜんぜん}＿＿＿。', 'This is not ___ at all.') },
+  polite_pastneg:  { verb: FP('{昨日|きのう}は、{全然|ぜんぜん}＿＿＿。', "Yesterday, I didn't ___ at all."), other: FP('{昨日|きのう}は{全然|ぜんぜん}＿＿＿。', 'Yesterday it was not ___ at all.') },
+  plain_present:   { other: FQ('これは＿＿＿。', 'This is ___.') },
+  plain_past:      { verb: FQ('{昨日|きのう}、＿＿＿。', 'Yesterday, I ___.'), other: FQ('{昨日|きのう}は＿＿＿。', 'Yesterday it was ___.') },
+  plain_negative:  { verb: FQ('{全然|ぜんぜん}＿＿＿。', "I don't ___ at all."), other: FQ('これは{全然|ぜんぜん}＿＿＿。', 'This is not ___ at all.') },
+  plain_pastneg:   { verb: FQ('{昨日|きのう}は、{全然|ぜんぜん}＿＿＿。', "Yesterday, I didn't ___ at all."), other: FQ('{昨日|きのう}は{全然|ぜんぜん}＿＿＿。', 'Yesterday it was not ___ at all.') },
+  te:              { verb: FP('＿＿＿、それから{家|うち}に{帰|かえ}りました。', 'I ___, and then I went home.'), other: FP('ここは＿＿＿、いい{所|ところ}です。', 'This place is ___ and nice.') },
+  tara:            { verb: FP('＿＿＿、{電話|でんわ}してください。', 'When/If you ___, please call me.'), other: FP('もし＿＿＿、{買|か}います。', 'If it is ___, I will buy it.') },
+  tara_neg:        { verb: FP('もし＿＿＿、{電話|でんわ}してください。', "If you don't ___, please call me.") },
+  conditional_ba:     { verb: FP('もし＿＿＿、いいと{思|おも}います。', 'If ___, I think it is good.') },
+  conditional_ba_neg: { verb: FP('もし＿＿＿、いいと{思|おも}います。', "If (it) doesn't ___, I think it is good.") },
+  continuous:         { verb: FQ('{今|いま}、＿＿＿。', "Right now, I'm ___-ing.") },
+  continuous_past:    { verb: FQ('{昨日|きのう}の{夜|よる}、＿＿＿。', 'Last night, I was ___-ing.') },
+  continuous_neg:     { verb: FQ('{今|いま}は、＿＿＿。', "Right now, I'm not ___-ing.") },
+  continuous_pastneg: { verb: FQ('{昨日|きのう}の{夜|よる}は、＿＿＿。', "Last night, I wasn't ___-ing.") },
+  potential:          { verb: FQ('ここで、＿＿＿。', 'I can ___ here.') },
+  potential_past:     { verb: FQ('{子供|こども}のとき、＿＿＿。', 'When I was a child, I could ___.') },
+  potential_neg:      { verb: FQ('ここでは、＿＿＿。', "I can't ___ here.") },
+  potential_pastneg:  { verb: FQ('{昨日|きのう}は、＿＿＿。', "Yesterday, I couldn't ___.") },
+  volitional:         { verb: FQ('いっしょに＿＿＿。', "Let's ___ together.") },
+  command:            { verb: FP('{先生|せんせい}は「{早|はや}く＿＿＿！」と{言|い}いました。', 'The teacher said, "___ quickly!"') },
+  prohibitive:        { verb: FP('{先生|せんせい}は「ここで＿＿＿！」と{言|い}いました。', 'The teacher said, "Don\'t ___ here!"') },
+  passive:            { verb: FP('{私|わたし}はいつも{先生|せんせい}に＿＿＿。', 'I am always ___ by the teacher.') },
+  passive_past:       { verb: FP('{昨日|きのう}、{先生|せんせい}に＿＿＿。', 'Yesterday, I was ___ by the teacher.') },
+  passive_neg:        { verb: FP('{私|わたし}はあまり{先生|せんせい}に＿＿＿。', 'I am not often ___ by the teacher.') },
+  passive_pastneg:    { verb: FP('{昨日|きのう}は{先生|せんせい}に＿＿＿。', 'Yesterday, I was not ___ by the teacher.') },
+  causative:          { verb: FP('{先生|せんせい}はいつも{学生|がくせい}に＿＿＿。', 'The teacher always makes the students ___.') },
+  causative_past:     { verb: FP('{昨日|きのう}、{先生|せんせい}は{学生|がくせい}に＿＿＿。', 'Yesterday, the teacher made the students ___.') },
+  causative_neg:      { verb: FP('{先生|せんせい}は{学生|がくせい}に＿＿＿。', 'The teacher does not make the students ___.') },
+  causative_pastneg:  { verb: FP('{昨日|きのう}、{先生|せんせい}は{学生|がくせい}に＿＿＿。', 'Yesterday, the teacher did not make the students ___.') },
+  causative_passive:         { verb: FP('{私|わたし}はいつも{先生|せんせい}に＿＿＿。', 'I am always made to ___ by the teacher.') },
+  causative_passive_neg:     { verb: FP('{私|わたし}はあまり{先生|せんせい}に＿＿＿。', 'I am not often made to ___ by the teacher.') },
+  causative_passive_past:    { verb: FP('{昨日|きのう}、{先生|せんせい}に＿＿＿。', 'Yesterday, I was made to ___ by the teacher.') },
+  causative_passive_pastneg: { verb: FP('{昨日|きのう}は{先生|せんせい}に＿＿＿。', 'Yesterday, I was not made to ___ by the teacher.') },
+  desire:         { verb: FP('{私|わたし}は{今|いま}＿＿＿。', 'I want to ___ now.') },
+  desire_past:    { verb: FP('{子供|こども}のとき、＿＿＿。', 'When I was a child, I wanted to ___.') },
+  desire_neg:     { verb: FP('{私|わたし}は{今|いま}は＿＿＿。', "I don't want to ___ now.") },
+  desire_pastneg: { verb: FP('{昨日|きのう}は＿＿＿。', "Yesterday, I didn't want to ___.") },
+  before_noun:    { other: FP('＿＿＿{人|ひと}です。', 'He/She is a ___ person.') },
+};
+let FORM_KEY_BY_POS_FORM = null; // built on first use (UNIFIED_FORMS is defined further down)
+
+function rubyFromBraces(str) {
+  return str.replace(/\{([^|}]+)\|([^}]+)\}/g, '<ruby>$1<rt>$2</rt></ruby>');
+}
+// Returns { pre, post, en } (HTML strings) for a question item, or null if none.
+function getFrame(item) {
+  if (!FORM_KEY_BY_POS_FORM) {
+    FORM_KEY_BY_POS_FORM = {};
+    UNIFIED_FORMS.forEach(uf => Object.entries(uf.map).forEach(([pos, id]) => { if (id) FORM_KEY_BY_POS_FORM[pos + '|' + id] = uf.key; }));
+  }
+  const key = item.formKey || FORM_KEY_BY_POS_FORM[item.pos + '|' + item.formId];
+  if (key === 'adverb') {
+    const sn = SENTENCES[item.pos] && SENTENCES[item.pos][item.verb.hira];
+    return sn ? { pre: segRuby(sn.pre), post: segRuby(sn.post), en: sn.en } : null;
+  }
+  const f = FRAMES[key] && (item.pos === 'verb' ? FRAMES[key].verb : FRAMES[key].other);
+  if (!f) return null;
+  const [pre, post] = f.jp.split('＿＿＿');
+  return { pre: rubyFromBraces(pre), post: rubyFromBraces(post), en: f.en.replace('___', '…') };
+}
+function hardSupported(pos, hira, key) {
+  if (key === 'adverb') return !!(SENTENCES[pos] && SENTENCES[pos][hira]);
+  return !!(FRAMES[key] && (pos === 'verb' ? FRAMES[key].verb : FRAMES[key].other));
 }
 function sentenceHtml(item, fillHtml) {
-  const sn = SENTENCES[item.pos][item.verb.hira];
-  return segRuby(sn.pre) + fillHtml + segRuby(sn.post);
+  const f = getFrame(item);
+  return f.pre + fillHtml + f.post;
 }
 
 function renderAdverbPage(pos) {
@@ -3605,7 +3677,6 @@ function renderUnifiedFormChips(wrap, displayPos) {
   if (!displayPos) return;
   UNIFIED_FORMS.forEach(uf => {
     if (uf.map[displayPos] === null || uf.map[displayPos] === undefined) return;
-    if (practiceMode === 'hard' && !HARD_FORM_KEYS.has(uf.key)) return;
     const chip = document.createElement('div');
     chip.className = 'chip' + (formSelectionState[displayPos][uf.key] ? ' selected' : '');
     chip.dataset.formKey = uf.key;
@@ -3687,15 +3758,14 @@ function buildCandidates(posList, stateMap, mode) {
       if (!posState[uf.key]) return;
       const formId = uf.map[pos];
       if (!formId) return;
-      if (mode === 'hard' && !HARD_FORM_KEYS.has(uf.key)) return;
       config.data.forEach(item => {
         const r = config.conjugate(item);
         if (!r[formId] || r[formId] === '—') return;
-        if (mode === 'hard' && !hardSupported(pos, item.hira)) return;
+        if (mode === 'hard' && !hardSupported(pos, item.hira, uf.key)) return;
         const dedup = pos + '|' + item.kanji + '|' + formId;
         if (seen.has(dedup)) return;
         seen.add(dedup);
-        candidates.push({ verb: item, formId, pos, mode: mode === 'hard' ? 'hard' : 'easy' });
+        candidates.push({ verb: item, formId, pos, formKey: uf.key, mode: mode === 'hard' ? 'hard' : 'easy' });
       });
     });
   });
@@ -3767,7 +3837,7 @@ document.getElementById('start-btn').addEventListener('click', () => {
   let candidates = buildCandidates([...selectedPosList], formSelectionState, practiceMode);
   if (candidates.length === 0) {
     alert(practiceMode === 'hard'
-      ? 'Difficult mode: please choose い-Adjective or な-Adjective, and select the Adverb form.'
+      ? 'No sentences for this combination. Please change your settings.'
       : 'No questions match this combination. Please change your settings.');
     return;
   }
@@ -3872,7 +3942,7 @@ function showQuestion() {
   if (isHard) {
     quizVerbKanji.innerHTML = sentenceHtml(item, '<span class="sent-blank">＿＿＿</span>');
     quizVerbHira.textContent = `Use: ${verb.kanji}（${verb.hira}）— ${verb.meaning}`;
-    quizVerbMeaning.textContent = SENTENCES[pos][verb.hira].en;
+    quizVerbMeaning.textContent = getFrame(item).en;
   } else {
     quizVerbKanji.textContent = verb.kanji;
     quizVerbHira.textContent = `（${verb.hira}）`;
@@ -3951,11 +4021,12 @@ function checkAnswer() {
     correctAnswer,
     userAnswer,
     isCorrect,
-    mode: item.mode
+    mode: item.mode,
+    formKey: item.formKey
   });
 
   const filledLine = item.mode === 'hard'
-    ? `<div class="filled-sentence">${sentenceHtml(item, '<span class="sent-fill">' + correctAnswer + '</span>')}</div><div class="filled-en">${SENTENCES[pos][verb.hira].en}</div>`
+    ? `<div class="filled-sentence">${sentenceHtml(item, '<span class="sent-fill">' + correctAnswer + '</span>')}</div><div class="filled-en">${getFrame(item).en}${getFrame(item).en.includes('…') ? ` （… = ${verb.kanji}, ${verb.meaning}）` : ''}</div>`
     : '';
   feedbackEl.innerHTML = `
     <div class="feedback-result ${isCorrect ? 'ok' : 'no'}">${isCorrect ? 'Correct! ⭕' : 'Incorrect ✕'}</div>
@@ -4035,7 +4106,7 @@ document.getElementById('retry-wrong-btn').addEventListener('click', () => {
   const wrongOnes = reviewLog.filter(r => !r.isCorrect);
   if (wrongOnes.length === 0) return;
 
-  quizQueue = shuffle(wrongOnes.map(r => ({ verb: r.verb, formId: r.formId, pos: r.pos, mode: r.mode })));
+  quizQueue = shuffle(wrongOnes.map(r => ({ verb: r.verb, formId: r.formId, pos: r.pos, formKey: r.formKey, mode: r.mode })));
   currentIndex = 0;
   correctCount = 0;
   wrongCount = 0;
