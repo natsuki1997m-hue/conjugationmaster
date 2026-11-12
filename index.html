@@ -3342,6 +3342,7 @@ function toReading(str, verb, answer, pairs) {
     const stemR = h.slice(0, h.length - okuri.length);
     all.push([stemK, answer.startsWith(stemR) ? stemR : answer.slice(0, stemR.length)]); // 来る: き / こ / く
   }
+  all.push(['生徒','せいと']); // accepted as a synonym of 学生
   all.sort((a, b) => b[0].length - a[0].length);
   let out = str;
   all.forEach(([kj, rd]) => { out = out.split(kj).join(rd); });
@@ -3357,6 +3358,12 @@ function sentenceCandidates(frame, answer) {
   if (q1 >= 0 && q2 >= 0) {
     const inner = normSentence(frame.preHira.slice(q1 + 1) + answer + frame.postHira.slice(0, q2));
     out.push(inner, inner.replace(/^わたしは/, ''));
+  }
+  // Same meaning, different word: "students" can be がくせい or せいと.
+  const SYN = [['がくせい','せいと']];
+  for (const c of out.slice()) for (const [a, b] of SYN) {
+    if (c.includes(a)) out.push(c.split(a).join(b));
+    if (c.includes(b)) out.push(c.split(b).join(a));
   }
   return out;
 }
