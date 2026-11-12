@@ -3348,7 +3348,7 @@ function toReading(str, verb, answer, pairs) {
   all.forEach(([kj, rd]) => { out = out.split(kj).join(rd); });
   return out;
 }
-function sentenceCandidates(frame, answer) {
+function sentenceCandidates(frame, answer, formId) {
   const base = normSentence(frame.preHira + answer + frame.postHira);
   const out = [base];
   const noSubject = base.replace(/^わたしは/, '');
@@ -3358,6 +3358,12 @@ function sentenceCandidates(frame, answer) {
   if (q1 >= 0 && q2 >= 0) {
     const inner = normSentence(frame.preHira.slice(q1 + 1) + answer + frame.postHira.slice(0, q2));
     out.push(inner, inner.replace(/^わたしは/, ''));
+  }
+  // Potential: the object takes が or を (日本語が話せる / 日本語を話せる).
+  if (formId && /^potential/.test(formId) && frame.preHira.endsWith('が')) {
+    const pre2 = frame.preHira.slice(0, -1) + 'を';
+    const alt = normSentence(pre2 + answer + frame.postHira);
+    out.push(alt, alt.replace(/^わたしは/, ''));
   }
   // Same meaning, different word: "students" can be がくせい or せいと.
   const SYN = [['がくせい','せいと']];
@@ -4031,7 +4037,7 @@ function checkAnswer() {
   let isCorrect;
   if (isFullMode) {
     const fr = getFrame(item);
-    isCorrect = sentenceCandidates(fr, correctAnswer).includes(normSentence(toReading(userAnswer, verb, correctAnswer, fr.pairs)));
+    isCorrect = sentenceCandidates(fr, correctAnswer, formId).includes(normSentence(toReading(userAnswer, verb, correctAnswer, fr.pairs)));
     correctAnswer = fr.preHira + correctAnswer + fr.postHira; // the model sentence, in hiragana
   } else {
     isCorrect = kataToHira(toReading(userAnswer, verb, correctAnswer, null)) === kataToHira(correctAnswer);
