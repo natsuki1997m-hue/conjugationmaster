@@ -3318,7 +3318,7 @@ function getFrame(item) {
   const pre = sentTokens(preS), post = sentTokens(postS);
   const seen = new Set(); const hints = [];
   [...pre, ...post].forEach(k => { if (k.m && !seen.has(k.t)) { seen.add(k.t); hints.push(k); } });
-  return { pre: tokHtml(pre), post: tokHtml(post), preHira: tokHira(pre), postHira: tokHira(post), en: sn[1], enFull: sn[1], hints, pairs: tokPairs([...pre, ...post]) };
+  return { pre: tokHtml(pre), post: tokHtml(post), preHira: tokHira(pre), postHira: tokHira(post), en: sn[1], enFull: sn[1], hints, pairs: tokPairs([...pre, ...post]), preToks: pre };
 }
 function hardSupported(pos, hira, key) {
   return !!(SENT[pos] && SENT[pos][hira] && SENT[pos][hira][key]);
@@ -3333,6 +3333,23 @@ function sentenceHtml(item, fillHtml) {
 const kataToHira = str => str.replace(/[\u30A1-\u30F6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
 const normSentence = str => kataToHira(str).replace(/[\s　、。，．,.！？!?「」『』・]/g, '');
 // str: what the student typed; verb: the word being asked; answer: its correct (hiragana) form; pairs: [kanji, reading] from the sentence
+let DICT_PAIRS = null;
+// [kanji stem, reading] for every word in the app, so that e.g. 分かります or 行きます typed by a student can be read.
+function dictionaryPairs() {
+  if (DICT_PAIRS) return DICT_PAIRS;
+  const seen = {};
+  Object.values(POS_CONFIG).forEach(cfg => (cfg.data || []).forEach(w => {
+    const k = w.kanji, h = w.hira;
+    if (!k || !h || !/[一-鿿]/.test(k)) return;
+    const okuri = (k.match(/[぀-ゟ]+$/) || [''])[0];
+    if (!h.endsWith(okuri)) return;
+    const kk = k.slice(0, k.length - okuri.length), rr = h.slice(0, h.length - okuri.length);
+    if (!kk || !rr || kk === '来') return;
+    (seen[kk] = seen[kk] || new Set()).add(rr);
+  }));
+  DICT_PAIRS = Object.entries(seen).filter(([, r]) => r.size === 1).map(([kk, r]) => [kk, [...r][0]]);
+  return DICT_PAIRS;
+}
 function toReading(str, verb, answer, pairs) {
   const all = (pairs || []).slice();
   const k = verb.kanji, h = verb.hira;
@@ -3342,14 +3359,81 @@ function toReading(str, verb, answer, pairs) {
     const stemR = h.slice(0, h.length - okuri.length);
     all.push([stemK, answer.startsWith(stemR) ? stemR : answer.slice(0, stemR.length)]); // 来る: き / こ / く
   }
-  all.push(['生徒','せいと']); // accepted as a synonym of 学生
-  all.push(['家','うち']); // うち / いえ are both fine (see sentenceCandidates)
+  GLOBAL_KANJI.forEach(x => all.push(x)); // other spellings the student may choose
+  dictionaryPairs().forEach(x => all.push(x)); // kanji of any other word in the app (分かります, 行きます …)
   all.sort((a, b) => b[0].length - a[0].length);
   let out = str;
   all.forEach(([kj, rd]) => { out = out.split(kj).join(rd); });
   return out;
 }
-function sentenceCandidates(frame, answer, formId) {
+// Kanji spellings a student may use for words that the model sentence writes in kana (or the other way round).
+const GLOBAL_KANJI = [
+  ['生徒','せいと'], ['家族','かぞく'], ['家','うち'], ['友達','ともだち'], ['友だち','ともだち'],
+  ['子供','こども'], ['子ども','こども'], ['速く','はやく'], ['早く','はやく'], ['僕','ぼく'], ['私','わたし'],
+  ['一人','ひとり'], ['朝','あさ'], ['昼','ひる'], ['晩','ばん'], ['夜','よる'], ['ご飯','ごはん'], ['御飯','ごはん'],
+  ['綺麗','きれい'], ['何','なに'], ['分','わ'], ['色々','いろいろ'], ['貰','もら']
+];
+// Words that mean the same thing in a sentence. The first word of each group is the one all others are folded into.
+const SYN_GROUPS = [
+  ['がくせい','せいと'], ['うち','いえ'], ['じゅぎょう','くらす'],
+  ['ばんごはん','よるごはん','ゆうはん','ゆうしょく','よるはん'],
+  ['あさごはん','あさはん','ちょうしょく'], ['ひるごはん','ひるはん','ちゅうしょく','らんち'],
+  ['くるま','じどうしゃ'], ['かばん','ばっぐ'], ['ぱそこん','こんぴゅーたー','こんぴゅーた'],
+  ['かいもの','しょっぴんぐ'], ['ふろ','おふろ'], ['わたし','ぼく','あたし'],
+  ['すこし','ちょっと'], ['たくさん','いっぱい'], ['とても','すごく'],
+  ['あした','あす'], ['こんばん','こんや']
+];
+const SYN_LIST = [];
+SYN_GROUPS.forEach(g => g.slice(1).forEach(v => SYN_LIST.push([v, g[0]])));
+SYN_LIST.sort((a, b) => b[0].length - a[0].length);
+const canonSyn = str => { let o = str; SYN_LIST.forEach(([v, c]) => { o = o.split(v).join(c); }); return o; };
+
+// Japanese word order is flexible: the parts of the sentence before the answer (the "chunks": 〜は 〜を 〜に 〜で, adverbs, time words)
+// can come in any order. Returns the chunks, plus whatever is left over in front of the answer, or null when the part before the answer is
+// too complicated to move around safely (verbs in て-form, quotations, commas …).
+const CHUNK_PART = ['から','まで','は','が','を','に','で','へ','も'];
+const ADV_TOK = new Set(['あまり','よく','いつも','全然','早く','速く','遅く','いっしょに','一人で','たくさん','少し','もう','まだ','すぐ','ゆっくり','もっと','とても','毎日','昨日','今日','明日','今','今朝','今晩','先週','今週','来週','来月','週末','去年','来年','今年','それから','また']);
+const ATTACH = ['いろいろな','あそこ','この','あの','その','どの','さん','たち','ごろ','ぐらい','くらい','これ','それ','あれ','ここ','そこ','だれ','みんな','と','や','な'];
+function splitChunks(toks) {
+  // Everything up to the last comma is an earlier clause: it stays where it is.
+  let li = -1, lpos = -1;
+  toks.forEach((k, n) => { if (k.r === undefined) { const q = k.t.lastIndexOf('、'); if (q >= 0) { li = n; lpos = q; } } });
+  let fixed = '', rest = toks;
+  if (li >= 0) {
+    fixed = toks.slice(0, li).map(k => k.r || k.t).join('') + toks[li].t.slice(0, lpos + 1);
+    rest = [{ t: toks[li].t.slice(lpos + 1) }].concat(toks.slice(li + 1)).filter(k => k.t !== '');
+  }
+  const chunks = []; let cur = '';
+  for (let n = 0; n < rest.length; n++) {
+    const k = rest[n];
+    if (k.r !== undefined) { // a word
+      cur += k.r || k.t;
+      if (ADV_TOK.has(k.t)) {
+        const nx = rest[n + 1];
+        const contPart = nx && nx.r === undefined && /^(から|まで|[はがをにでへもの])/.test(nx.t);
+        if (!contPart) { chunks.push(cur); cur = ''; }
+      }
+    } else { // literal text: particles and small attached words only
+      let t = k.t;
+      while (t) {
+        const at = ATTACH.find(w => t.startsWith(w));
+        if (at) { cur += at; t = t.slice(at.length); continue; }
+        const m = t.match(/^(から|まで|[はがをにでへもの])/);
+        if (!m) return null;
+        cur += m[1]; t = t.slice(m[1].length);
+        if (CHUNK_PART.includes(m[1]) && !(m[1] !== 'は' && m[1] !== 'も' && /^[はも]/.test(t))) { chunks.push(cur); cur = ''; } // 〜では / 〜にも stay together
+      }
+    }
+  }
+  return { fixed, chunks, rest: cur };
+}
+function permutations(arr) {
+  if (arr.length <= 1) return [arr];
+  const out = [];
+  arr.forEach((x, i) => permutations(arr.slice(0, i).concat(arr.slice(i + 1))).forEach(p => out.push([x].concat(p))));
+  return out;
+}
+function sentenceCandidates(frame, answer) {
   const base = normSentence(frame.preHira + answer + frame.postHira);
   const out = [base];
   const noSubject = base.replace(/^わたしは/, '');
@@ -3360,19 +3444,29 @@ function sentenceCandidates(frame, answer, formId) {
     const inner = normSentence(frame.preHira.slice(q1 + 1) + answer + frame.postHira.slice(0, q2));
     out.push(inner, inner.replace(/^わたしは/, ''));
   }
-  // Potential: the object takes が or を (日本語が話せる / 日本語を話せる).
-  if (formId && /^potential/.test(formId) && frame.preHira.endsWith('が')) {
-    const pre2 = frame.preHira.slice(0, -1) + 'を';
-    const alt = normSentence(pre2 + answer + frame.postHira);
-    out.push(alt, alt.replace(/^わたしは/, ''));
-  }
-  // Same meaning, different word: "students" can be がくせい or せいと.
-  const SYN = [['がくせい','せいと'], ['うち','いえ'], ['じゅぎょう','くらす']];
-  for (const c of out.slice()) for (const [a, b] of SYN) {
-    if (c.includes(a)) out.push(c.split(a).join(b));
-    if (c.includes(b)) out.push(c.split(b).join(a));
+  // Flexible word order.
+  const sc = frame.preToks && splitChunks(frame.preToks);
+  if (sc && sc.chunks.length <= 6) {
+    const tail = sc.rest + answer + frame.postHira;
+    const sets = [sc.chunks];
+    const wi = sc.chunks.indexOf('わたしは');
+    if (wi >= 0) sets.push(sc.chunks.filter((_, i) => i !== wi));
+    sets.forEach(set => permutations(set).forEach(p => out.push(normSentence(sc.fixed + p.join('') + tail))));
   }
   return out;
+}
+// 'exact': the sentence matches (any word order, any synonym, kana / katakana / kanji)
+// 'form': the answer form is right and ends the sentence, but the sentence is different from the model
+// 'no': wrong
+function gradeSentence(fr, answer, formId, userAnswer, verb) {
+  const potential = /^potential/.test(formId || '');
+  const fold = str => { const c = canonSyn(str); return potential ? c.replace(/を/g, 'が') : c; };
+  const u = fold(normSentence(toReading(userAnswer, verb, answer, fr.pairs)));
+  if (sentenceCandidates(fr, answer).some(c => fold(c) === u)) return 'exact';
+  const a = fold(normSentence(answer));
+  const post = fold(normSentence(fr.postHira));
+  if (a && (u.endsWith(a) || new RegExp(a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[よねかな]{1,2}$').test(u) || (post && u.includes(a + post)))) return 'form';
+  return 'no';
 }
 function buildHintHtml(item) {
   const f = getFrame(item);
@@ -4035,10 +4129,12 @@ function checkAnswer() {
   let correctAnswer = r[formId];
   const userAnswer = answerInput.value.trim();
   const isFullMode = item.mode === 'sentence';
-  let isCorrect;
+  let isCorrect, loose = false;
   if (isFullMode) {
     const fr = getFrame(item);
-    isCorrect = sentenceCandidates(fr, correctAnswer, formId).includes(normSentence(toReading(userAnswer, verb, correctAnswer, fr.pairs)));
+    const grade = gradeSentence(fr, correctAnswer, formId, userAnswer, verb);
+    isCorrect = grade !== 'no';
+    loose = grade === 'form';
     correctAnswer = fr.preHira + correctAnswer + fr.postHira; // the model sentence, in hiragana
   } else {
     isCorrect = kataToHira(toReading(userAnswer, verb, correctAnswer, null)) === kataToHira(correctAnswer);
@@ -4081,6 +4177,7 @@ function checkAnswer() {
   feedbackEl.innerHTML = `
     <div class="feedback-result ${isCorrect ? 'ok' : 'no'}">${isCorrect ? 'Correct! ⭕' : 'Incorrect ✕'}</div>
     ${!isCorrect ? `<div style="font-size:13px;color:var(--ink-soft);margin-bottom:4px;">Correct answer:</div><div class="correct-answer">${correctAnswer}</div>` : ''}
+    ${loose ? `<div style="font-size:13px;color:var(--ink-soft);margin-bottom:4px;">Your verb form is right! Your sentence is a little different from the model sentence — compare:</div><div class="correct-answer">${correctAnswer}</div>` : ''}
     ${filledLine}
     <button type="button" class="next-btn" id="next-btn">${currentIndex + 1 < quizQueue.length ? 'Next Question' : 'See Results'}</button>
   `;
