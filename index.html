@@ -4126,17 +4126,25 @@ function checkAnswer() {
   const config = POS_CONFIG[pos];
   const r = config.conjugate(verb);
   let correctAnswer = r[formId];
+  // In a sentence, plain 〜だ is dropped in everyday speech (私は学生。/ 家は静か。). Easy mode still asks for 学生だ.
+  const fullAnswer = correctAnswer;
+  const dropDa = item.mode !== 'easy' && (pos === 'noun' || pos === 'naadj') && formId === 'present' && correctAnswer.endsWith('だ');
+  if (dropDa) correctAnswer = correctAnswer.slice(0, -1);
   const userAnswer = answerInput.value.trim();
   const isFullMode = item.mode === 'sentence';
   let isCorrect, loose = false;
   if (isFullMode) {
     const fr = getFrame(item);
-    const grade = gradeSentence(fr, correctAnswer, formId, userAnswer, verb);
+    let grade = gradeSentence(fr, correctAnswer, formId, userAnswer, verb);
+    if (dropDa && grade !== 'exact') { // 〜だ is correct grammar too
+      const g2 = gradeSentence(fr, fullAnswer, formId, userAnswer, verb);
+      if (g2 === 'exact' || grade === 'no') grade = g2;
+    }
     isCorrect = grade !== 'no';
     loose = grade === 'form';
     correctAnswer = fr.preHira + correctAnswer + fr.postHira; // the model sentence, in hiragana
   } else {
-    isCorrect = kataToHira(toReading(userAnswer, verb, correctAnswer, null)) === kataToHira(correctAnswer);
+    isCorrect = [correctAnswer, fullAnswer].some(a => kataToHira(toReading(userAnswer, verb, a, null)) === kataToHira(a));
   }
 
   answered = true;
@@ -4164,7 +4172,7 @@ function checkAnswer() {
     formKey: item.formKey
   });
 
-  const targetWord = r[formId];
+  const targetWord = dropDa ? fullAnswer.slice(0, -1) : r[formId];
   let filledLine = '';
   if (item.mode === 'blank') {
     const fr = getFrame(item);
