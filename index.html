@@ -3367,7 +3367,7 @@ function sentenceCandidates(frame, answer, formId) {
     out.push(alt, alt.replace(/^わたしは/, ''));
   }
   // Same meaning, different word: "students" can be がくせい or せいと.
-  const SYN = [['がくせい','せいと'], ['うち','いえ']];
+  const SYN = [['がくせい','せいと'], ['うち','いえ'], ['じゅぎょう','くらす']];
   for (const c of out.slice()) for (const [a, b] of SYN) {
     if (c.includes(a)) out.push(c.split(a).join(b));
     if (c.includes(b)) out.push(c.split(b).join(a));
