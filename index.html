@@ -3343,6 +3343,7 @@ function toReading(str, verb, answer, pairs) {
     all.push([stemK, answer.startsWith(stemR) ? stemR : answer.slice(0, stemR.length)]); // 来る: き / こ / く
   }
   all.push(['生徒','せいと']); // accepted as a synonym of 学生
+  all.push(['家','うち']); // うち / いえ are both fine (see sentenceCandidates)
   all.sort((a, b) => b[0].length - a[0].length);
   let out = str;
   all.forEach(([kj, rd]) => { out = out.split(kj).join(rd); });
@@ -3366,7 +3367,7 @@ function sentenceCandidates(frame, answer, formId) {
     out.push(alt, alt.replace(/^わたしは/, ''));
   }
   // Same meaning, different word: "students" can be がくせい or せいと.
-  const SYN = [['がくせい','せいと']];
+  const SYN = [['がくせい','せいと'], ['うち','いえ']];
   for (const c of out.slice()) for (const [a, b] of SYN) {
     if (c.includes(a)) out.push(c.split(a).join(b));
     if (c.includes(b)) out.push(c.split(b).join(a));
