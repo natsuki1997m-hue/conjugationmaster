@@ -1702,7 +1702,7 @@ table.verb-table.adv-table{min-width:620px;}
 
         <form id="answer-form" autocomplete="off">
           <div class="answer-row">
-            <input type="text" class="answer-input" id="answer-input" placeholder="Type your answer in hiragana" lang="ja">
+            <input type="text" class="answer-input" id="answer-input" placeholder="Type your answer (hiragana or kanji)" lang="ja">
             <button type="submit" class="submit-btn">Submit</button>
           </div>
         </form>
@@ -1795,7 +1795,7 @@ table.verb-table.adv-table{min-width:620px;}
       </div>
       <form id="game-answer-form" autocomplete="off">
         <div class="answer-row">
-          <input type="text" class="answer-input" id="game-answer-input" placeholder="Type your answer in hiragana" lang="ja">
+          <input type="text" class="answer-input" id="game-answer-input" placeholder="Type your answer (hiragana or kanji)" lang="ja">
           <button type="submit" class="submit-btn">Shoot</button>
         </div>
       </form>
@@ -3430,6 +3430,7 @@ function tokensFromBraces(str) {
   return out;
 }
 const tokHtml = toks => toks.map(k => k.r ? `<ruby>${k.t}<rt>${k.r}</rt></ruby>` : k.t).join('');
+const tokPairs = toks => toks.filter(k => k.r && k.t !== k.r).map(k => [k.t, k.r]);
 const tokHira = toks => toks.map(k => k.r || k.t).join('');
 const segsToTokens = segs => segs.map(x => Array.isArray(x) ? { t: x[0], r: x[1] } : { t: x });
 
@@ -3446,7 +3447,7 @@ function getFrame(item) {
     if (!sn) return null;
     const pre = segsToTokens(sn.pre), post = segsToTokens(sn.post);
     const hints = ((ADV_HINTS[item.pos] || {})[item.verb.hira] || []).map(h => ({ t: h[0], r: h[1], m: h[2] }));
-    return { pre: tokHtml(pre), post: tokHtml(post), preHira: tokHira(pre), postHira: tokHira(post), en: sn.en, enFull: sn.en, hints };
+    return { pre: tokHtml(pre), post: tokHtml(post), preHira: tokHira(pre), postHira: tokHira(post), en: sn.en, enFull: sn.en, hints, pairs: tokPairs([...pre, ...post]) };
   }
   const f = FRAMES[key] && (item.pos === 'verb' ? FRAMES[key].verb : FRAMES[key].other);
   if (!f) return null;
@@ -3456,7 +3457,7 @@ function getFrame(item) {
   [...pre, ...post].forEach(k => { if (k.m && !seen.has(k.t)) { seen.add(k.t); hints.push(k); } });
   return {
     pre: tokHtml(pre), post: tokHtml(post), preHira: tokHira(pre), postHira: tokHira(post),
-    en: f.en.replace('___', '…'), enFull: f.en.replace('___', `[${item.verb.meaning}]`), hints,
+    en: f.en.replace('___', '…'), enFull: f.en.replace('___', `[${item.verb.meaning}]`), hints, pairs: tokPairs([...pre, ...post]),
   };
 }
 function hardSupported(pos, hira, key) {
@@ -3469,7 +3470,24 @@ function sentenceHtml(item, fillHtml) {
 }
 
 // Full-sentence answers: ignore spaces and punctuation; the opening 「私は」 may be left out.
-const normSentence = str => str.replace(/[\s　、。，．,.！？!?「」『』・]/g, '');
+// Typing in kanji / katakana is fine: the answer is turned into hiragana before it is compared.
+const kataToHira = str => str.replace(/[\u30A1-\u30F6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+const normSentence = str => kataToHira(str).replace(/[\s　、。，．,.！？!?「」『』・]/g, '');
+// str: what the student typed; verb: the word being asked; answer: its correct (hiragana) form; pairs: [kanji, reading] from the sentence
+function toReading(str, verb, answer, pairs) {
+  const all = (pairs || []).slice();
+  const k = verb.kanji, h = verb.hira;
+  const okuri = (k.match(/[\u3040-\u309F]+$/) || [''])[0];
+  const stemK = k.slice(0, k.length - okuri.length);
+  if (stemK && /[\u4E00-\u9FFF]/.test(stemK) && h.endsWith(okuri)) {
+    const stemR = h.slice(0, h.length - okuri.length);
+    all.push([stemK, answer.startsWith(stemR) ? stemR : answer.slice(0, stemR.length)]); // 来る: き / こ / く
+  }
+  all.sort((a, b) => b[0].length - a[0].length);
+  let out = str;
+  all.forEach(([kj, rd]) => { out = out.split(kj).join(rd); });
+  return out;
+}
 function sentenceCandidates(frame, answer) {
   const base = normSentence(frame.preHira + answer + frame.postHira);
   const out = [base];
@@ -3494,7 +3512,7 @@ function buildHintHtml(item) {
       <li class="hint-target"><span class="hint-w">${rubyMarkup(verb.kanji, verb.hira)}</span><span class="hint-m">${verb.meaning} → <b>${formName}</b></span></li>
       ${rows}
     </ul>
-    <div class="hint-note">Add particles (は・が・を・に・で・と …) wherever you need them. Type everything in hiragana. Punctuation is optional. For “My friend said, …” you may write just the part inside the quotes.</div>`;
+    <div class="hint-note">Add particles (は・が・を・に・で・と …) wherever you need them. Hiragana, katakana or kanji are all fine. Punctuation is optional. For “My friend said, …” you may write just the part inside the quotes.</div>`;
 }
 
 function renderAdverbPage(pos) {
@@ -3790,7 +3808,7 @@ let currentPosTab = null;
 let practiceMode = 'easy'; // 'easy' (convert the word), 'blank' (fill in the blank) or 'sentence' (write the whole sentence)
 const MODE_NOTES = {
   blank: '✍ Normal: you see a sentence with a blank. Type the word in the form shown.',
-  sentence: '✍✍ Difficult: you see an English sentence. Type the whole sentence in Japanese (hiragana). Tap 💡 Hint to see the words you need.',
+  sentence: '✍✍ Difficult: you see an English sentence. Type the whole sentence in Japanese (hiragana or kanji, both OK). Tap 💡 Hint to see the words you need.',
 };
 function renderUnifiedFormChips(wrap, displayPos) {
   // Save chips for the tab that is CURRENTLY displayed (before switching)
@@ -4072,7 +4090,7 @@ function showQuestion() {
   quizVerbKanji.classList.toggle('sentence', isBlank);
   quizVerbKanji.classList.toggle('sentence-en', isFull);
   document.querySelector('#answer-form .answer-row').classList.toggle('wide', isFull);
-  answerInput.placeholder = isFull ? 'Type the whole sentence in hiragana' : 'Type your answer in hiragana';
+  answerInput.placeholder = isFull ? 'Type the whole sentence (hiragana or kanji)' : 'Type your answer (hiragana or kanji)';
   if (isBlank) {
     quizVerbKanji.innerHTML = sentenceHtml(item, '<span class="sent-blank">＿＿＿</span>');
     quizVerbHira.textContent = `Use: ${verb.kanji}（${verb.hira}）— ${verb.meaning}`;
@@ -4147,10 +4165,10 @@ function checkAnswer() {
   let isCorrect;
   if (isFullMode) {
     const fr = getFrame(item);
-    isCorrect = sentenceCandidates(fr, correctAnswer).includes(normSentence(userAnswer));
+    isCorrect = sentenceCandidates(fr, correctAnswer).includes(normSentence(toReading(userAnswer, verb, correctAnswer, fr.pairs)));
     correctAnswer = fr.preHira + correctAnswer + fr.postHira; // the model sentence, in hiragana
   } else {
-    isCorrect = userAnswer === correctAnswer;
+    isCorrect = kataToHira(toReading(userAnswer, verb, correctAnswer, null)) === kataToHira(correctAnswer);
   }
 
   answered = true;
@@ -4612,7 +4630,7 @@ gameAnswerForm.addEventListener('submit', (e) => {
   const typed = gameAnswerInput.value.trim();
   if (!typed) return;
 
-  const hit = gameActiveVerbs.find(v => !v.missed && v.answer === typed);
+  const hit = gameActiveVerbs.find(v => !v.missed && kataToHira(toReading(typed, v.verb, v.answer, null)) === kataToHira(v.answer));
   if (hit) {
     gameScore += hit.points;
     gameScoreEl.textContent = gameScore;
