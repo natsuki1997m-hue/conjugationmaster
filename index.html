@@ -4938,6 +4938,7 @@ function enterApp() {
 }
 
 function logoutFromApp() {
+  try { sessionStorage.setItem('jrSkipAuto', '1'); } catch (e) {}
   appRoot.classList.remove('unlocked');
   gateScreen.style.display = 'flex';
 
@@ -5009,6 +5010,17 @@ document.getElementById('gate-teacher-password').addEventListener('input', (e) =
   e.target.classList.remove('error');
   document.getElementById('gate-teacher-error').textContent = '';
 });
+
+// The student page (Natsuki's Japanese Room) leaves the signed-in student's name here, so they don't have to type it.
+setTimeout(() => {
+  let roomName = null, skip = false;
+  try { roomName = localStorage.getItem('jr_student'); skip = sessionStorage.getItem('jrSkipAuto') === '1'; } catch (e) {}
+  if (roomName && !skip && !currentUserName) {
+    currentUserName = roomName.trim();
+    currentUserRole = 'student';
+    enterApp();
+  }
+}, 0);
 
 // ============ Teacher dashboard ============
 let dashStudents = []; // [{name, sessionCount}]
